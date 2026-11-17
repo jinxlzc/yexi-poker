@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-Hans" translate="no">
+<head>
+  <meta charset="utf-8">
+  <meta name="google" content="notranslate">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>手机行动 · 视觉稿</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="board">
+  <div class="canvas">
+    <header class="pagehead">
+      <h1>手机行动</h1>
+      <p>同一手牌的三台手机。浏览器里的页面，不是原生壳。按钮在拇指区，弃牌和全下都不在第一下生效。</p>
+    </header>
+    <div class="toast-spec" role="status">
+      <b>没有主持权限</b>
+      <span>分池、撤销和开新一手只在主持那台电脑上。你的手机只能操作自己的行动。</span>
+    </div>
+    <div class="phones" style="margin-top:18px">
+      <div class="device-wrap">
+        <p class="label">林川 · 轮到你</p>
+        <div class="device">
+          <div class="browserbar mono">192.168.1.23:8787</div>
+          <div class="phone">
+            <div class="phone-top">
+              <b>4F2K</b>
+              <span>第 7 手 · 翻牌圈</span>
+            </div>
+            <div class="me">
+              <p class="nm">你的筹码</p>
+              <h2>林川</h2>
+              <div class="stack num">1,640</div>
+              <p class="sub">本手已投入 200 · 本轮 0 · 全场 10,040</p>
+            </div>
+            <div class="plate">
+              <div class="grid">
+                <div class="cell"><span>底池</span><b class="num">1,450</b></div>
+                <div class="cell grow"><span>跟注额</span><b class="num">320</b></div>
+                <div class="cell"><span>最小加注到</span><b class="num">640</b></div>
+              </div>
+            </div>
+            <div class="seatstrip" aria-hidden="true">
+              <div class="pill is-fold">周可<em>弃牌</em></div>
+              <div class="pill is-fold">何麦<em>弃牌</em></div>
+              <div class="pill">小满<em>320</em></div>
+              <div class="pill">老陈<em>全下</em></div>
+              <div class="pill">阿宁<em>320</em></div>
+              <div class="pill is-act">你<em>行动</em></div>
+            </div>
+            <div class="dock">
+              <div class="row">
+                <button class="btn btn-clay" type="button">弃牌</button>
+                <button class="btn btn-paper" type="button">跟注 320</button>
+              </div>
+              <button class="btn btn-amber btn-block" type="button">加注</button>
+              <button class="btn btn-brass btn-block" type="button">全下 1,640</button>
+              <p class="fine">弃牌和全下会再确认一次</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="device-wrap">
+        <p class="label">小满 · 等待他人</p>
+        <div class="device">
+          <div class="browserbar mono">192.168.1.23:8787</div>
+          <div class="phone">
+            <div class="phone-top">
+              <b>4F2K</b>
+              <span>第 7 手 · 翻牌圈</span>
+            </div>
+            <div class="me">
+              <p class="nm">你的筹码</p>
+              <h2>小满</h2>
+              <div class="stack num">1,480</div>
+              <p class="sub">本手已投入 520 · 本轮已下 320</p>
+            </div>
+            <div class="plate">
+              <div class="grid">
+                <div class="cell"><span>底池</span><b class="num">1,450</b></div>
+                <div class="cell"><span>本轮最高</span><b class="num">320</b></div>
+                <div class="cell"><span>全场</span><b class="num">10,040</b></div>
+              </div>
+            </div>
+            <div class="waitblock">
+              <strong>轮到 林川</strong>
+              <p>还没到你。这一轮你已经下注 320。林川若加注，才轮得到你再行动。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="device-wrap">
+        <p class="label">林川 · 加注面板</p>
+        <div class="device">
+          <div class="browserbar mono">192.168.1.23:8787</div>
+          <div class="phone">
+            <div class="me">
+              <p class="nm">加注不会在打开面板时送出</p>
+              <h2>林川</h2>
+              <div class="stack num">1,640</div>
+              <p class="sub">跟注额 320 · 最少要加到 640</p>
+            </div>
+            <div class="sheet">
+              <h3>加注到</h3>
+              <div class="amount-edit">
+                <button class="ghost" type="button" aria-label="减少">−</button>
+                <span class="num">960</span>
+                <button class="ghost" type="button" aria-label="增加">+</button>
+              </div>
+              <div class="pair"><span>再投入</span><b class="num">960</b></div>
+              <div class="slider" aria-hidden="true">
+                <div class="track"></div>
+                <div class="fill"></div>
+                <div class="thumb"></div>
+              </div>
+              <div class="pair"><span>最小 640</span><span>全下 1,640</span></div>
+              <div class="presets">
+                <span>最小</span>
+                <span>×2</span>
+                <span class="is-on">×3</span>
+                <span>全下</span>
+              </div>
+              <button class="btn btn-amber btn-block" type="button">确认加注到 960</button>
+              <button class="btn btn-ghost btn-block" type="button" style="margin-top:8px">取消</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

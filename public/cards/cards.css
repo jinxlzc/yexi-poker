@@ -1,0 +1,69 @@
+/* 夜席 v3 · 卡牌。宽度 --w，比例 1 : 1.4。 */
+.npcard { --w: 84px; width: var(--w); height: calc(var(--w) * 1.4); display: inline-block; position: relative; perspective: 800px; vertical-align: top; flex: none; transition: transform 260ms var(--ease), opacity 260ms var(--ease), filter 260ms var(--ease); }
+.npcard.is-board { --w: 84px; }
+.npcard.is-seat { --w: 40px; }
+.npcard.is-show { --w: 46px; }
+.npcard.is-mini { --w: 52px; }
+.npcard.is-hero { --w: 118px; }
+.npcard.is-tiny { --w: 34px; }
+.npcard-inner { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transition: transform 360ms var(--ease); }
+.npcard.is-flipped .npcard-inner { transform: rotateY(180deg); }
+.npcard-face { position: absolute; inset: 0; border-radius: calc(var(--w) * .085); backface-visibility: hidden; -webkit-backface-visibility: hidden; overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.06), 0 1px 0 rgba(255,255,255,.18), 0 2px 3px rgba(0,0,0,.25), 0 calc(var(--w) * .16) calc(var(--w) * .3) calc(var(--w) * -.06) rgba(0,0,0,.55); }
+.npcard-front { transform: rotateY(180deg); color: var(--black-ink);
+  background: radial-gradient(120% 80% at 30% 0%, rgba(255,255,255,.9), transparent 55%), linear-gradient(180deg, var(--paper), var(--paper-2)); }
+.npcard-front::after { content: ''; position: absolute; inset: 0; opacity: .35; mix-blend-mode: multiply; pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.4' numOctaves='3'/%3E%3CfeColorMatrix values='0 0 0 0 .55 0 0 0 0 .5 0 0 0 0 .42 0 0 0 .22 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23p)'/%3E%3C/svg%3E"); }
+.npcard-front.is-red { color: var(--red-ink); }
+.npcard-front.is-blank { background: var(--paper-2); }
+.npcard .rank { position: absolute; left: calc(var(--w) * .1); top: calc(var(--w) * .06); font-family: var(--font-rank); font-weight: 620; font-size: calc(var(--w) * .42); line-height: 1; letter-spacing: -0.04em; }
+.npcard .rank.is-ten { letter-spacing: -0.09em; font-size: calc(var(--w) * .38); left: calc(var(--w) * .06); }
+.npcard .suit { display: block; fill: currentColor; }
+.npcard .pip-s { position: absolute; left: calc(var(--w) * .12); top: calc(var(--w) * .5); width: calc(var(--w) * .22); height: calc(var(--w) * .22); }
+.npcard .pip-l { position: absolute; right: calc(var(--w) * .09); bottom: calc(var(--w) * .1); width: calc(var(--w) * .5); height: calc(var(--w) * .5); }
+.npcard .is-face .frame { position: absolute; inset: calc(var(--w) * .05); border-radius: calc(var(--w) * .05); border: 1px solid rgba(184,145,79,.7);
+  box-shadow: inset 0 0 0 calc(var(--w) * .02) rgba(255,255,255,.6), inset 0 0 0 calc(var(--w) * .028) rgba(184,145,79,.35);
+  background: linear-gradient(135deg, rgba(227,196,138,.18), transparent 40%, rgba(227,196,138,.12) 70%, transparent); }
+.npcard .is-face .pip-l { width: calc(var(--w) * .44); height: calc(var(--w) * .44); }
+.npcard .crest { position: absolute; right: calc(var(--w) * .12); top: calc(var(--w) * .14); font-family: var(--font-serif); font-style: normal; font-weight: 600; font-size: calc(var(--w) * .13); color: #a9864f; writing-mode: vertical-rl; }
+.npcard .is-ace .pip-l { right: 50%; bottom: 50%; transform: translate(50%, 50%) translateY(calc(var(--w) * .12)); width: calc(var(--w) * .58); height: calc(var(--w) * .58); }
+.npcard .foil { position: absolute; inset: 0; pointer-events: none; opacity: .18; mix-blend-mode: soft-light;
+  background: linear-gradient(115deg, transparent 30%, rgba(255,255,255,.9) 46%, transparent 60%); background-size: 260% 100%; animation: foil-sweep 11s ease-in-out infinite; }
+.npcard-back { background: radial-gradient(90% 60% at 50% 0%, rgba(255,255,255,.08), transparent 60%), linear-gradient(160deg, #15201d, #0b1210); }
+.npcard-back .bk-frame { position: absolute; inset: calc(var(--w) * .07); border-radius: calc(var(--w) * .05); border: 1px solid rgba(227,196,138,.55);
+  background: repeating-linear-gradient(45deg, rgba(227,196,138,.09) 0 1px, transparent 1px 5px), repeating-linear-gradient(-45deg, rgba(227,196,138,.09) 0 1px, transparent 1px 5px);
+  box-shadow: inset 0 0 0 2px #0e1613, inset 0 0 0 3px rgba(227,196,138,.25); }
+.npcard-back .bk-seal { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: calc(var(--w) * .38); height: calc(var(--w) * .38); border-radius: 22%;
+  background: linear-gradient(160deg, #e06a4f, var(--seal) 50%, var(--seal-deep)); display: grid; place-items: center; color: #fff1e6;
+  font-family: var(--font-serif); font-style: normal; font-weight: 700; font-size: calc(var(--w) * .22); line-height: 1;
+  box-shadow: 0 0 0 calc(var(--w) * .03) #0e1613, 0 0 0 calc(var(--w) * .04) rgba(227,196,138,.5); }
+.npcard.is-seat .bk-frame, .npcard.is-tiny .bk-frame { background: none; }
+.npcard.is-best { transform: translateY(-8px); }
+.npcard.is-best .npcard-front { box-shadow: inset 0 0 0 1px rgba(0,0,0,.06), 0 0 0 2px var(--gold), 0 0 24px 2px rgba(227,196,138,.45), 0 18px 28px -8px rgba(0,0,0,.6); }
+.npcard.is-dim { opacity: .55; filter: saturate(.7) brightness(.8); transform: translateY(4px) scale(.97); }
+.board-slots { display: flex; justify-content: center; gap: 10px; }
+.board-slot { position: relative; }
+.slot-empty { width: var(--slot-w, 84px); height: calc(var(--slot-w, 84px) * 1.4); border-radius: calc(var(--slot-w, 84px) * .085); border: 1px dashed rgba(236,228,210,.16); background: rgba(0,0,0,.14); box-shadow: inset 0 2px 8px rgba(0,0,0,.25); }
+.seat-holes { position: absolute; left: 50%; top: -30px; transform: translateX(-50%); display: flex; z-index: 0; pointer-events: none; }
+.seat-holes .npcard:first-child { transform: translateX(6px) rotate(-9deg); transform-origin: 50% 100%; }
+.seat-holes .npcard:last-child { transform: translateX(-6px) rotate(9deg); transform-origin: 50% 100%; }
+.seat.is-show .seat-holes { top: -60px; }
+.seat.is-show .seat-holes .npcard:first-child { transform: translateX(4px) rotate(-6deg); }
+.seat.is-show .seat-holes .npcard:last-child { transform: translateX(-4px) rotate(6deg); }
+.hero-cards { position: relative; width: 200px; height: 168px; margin: 0 auto; }
+.hero-cards .npcard { position: absolute; top: 0; }
+.hero-cards .npcard:first-child { left: 0; transform: rotate(-8deg); transform-origin: 50% 120%; }
+.hero-cards .npcard:last-child { right: 0; transform: rotate(7deg); transform-origin: 50% 120%; }
+@keyframes foil-sweep { 0%, 100% { background-position: 100% 0; } 50% { background-position: 0 0; } }
+@media (hover: hover) {
+  .npcard.is-board:hover .npcard-inner { transform: rotateY(180deg) rotateX(4deg) rotateY(-6deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .npcard, .npcard-inner { transition: none; }
+  .npcard .foil { animation: none; }
+  .npcard.is-flipped .npcard-inner { transform: none; }
+  .npcard.is-flipped .npcard-front { transform: none; }
+  .npcard.is-flipped .npcard-back { display: none; }
+  .npcard.is-down .npcard-front { display: none; }
+  .npcard.is-board:hover .npcard-inner { transform: none; }
+}

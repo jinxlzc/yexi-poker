@@ -1,0 +1,7 @@
+/* 自托管字体子集，均为 SIL OFL 1.1，见同目录 LICENSE-*.txt 与 README.md。由 tools/subset-fonts.py 生成。 */
+@font-face { font-family: 'NT Sans SC'; font-style: normal; font-weight: 400; font-display: swap; src: url(./noto-sans-sc-400.woff2) format('woff2'); }
+@font-face { font-family: 'NT Sans SC'; font-style: normal; font-weight: 700; font-display: swap; src: url(./noto-sans-sc-700.woff2) format('woff2'); }
+@font-face { font-family: 'NT Serif SC'; font-style: normal; font-weight: 600; font-display: swap; src: url(./noto-serif-sc-600.woff2) format('woff2'); }
+@font-face { font-family: 'NT Serif SC'; font-style: normal; font-weight: 700; font-display: swap; src: url(./noto-serif-sc-700.woff2) format('woff2'); }
+@font-face { font-family: 'NT Inter'; font-style: normal; font-weight: 400 700; font-display: swap; src: url(./inter-var.woff2) format('woff2'); }
+@font-face { font-family: 'NT Fraunces'; font-style: normal; font-weight: 620; font-display: block; src: url(./fraunces-rank.woff2) format('woff2'); }

@@ -1,0 +1,46 @@
+{
+  "name": "yexi-poker",
+  "version": "4.1.0",
+  "private": false,
+  "type": "module",
+  "description": "夜席 Yexi：线下德州扑克局域网牌桌，手机扫码记虚拟筹码。Self-hosted Texas Hold'em poker table for home games.",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js",
+    "test": "node --test test/*.test.js",
+    "test:e2e": "playwright test",
+    "test:all": "npm test && npm run test:e2e",
+    "sounds": "node tools/make-sounds.mjs"
+  },
+  "dependencies": {
+    "qrcode": "^1.5.4",
+    "ws": "^8.18.3"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.1",
+    "jsqr": "^1.4.0",
+    "pngjs": "^7.0.0"
+  },
+  "license": "MIT",
+  "author": "jinxlzc",
+  "keywords": [
+    "poker",
+    "texas-holdem",
+    "holdem",
+    "poker-chips",
+    "home-game",
+    "lan",
+    "self-hosted"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jinxlzc/yexi-poker.git"
+  },
+  "homepage": "https://github.com/jinxlzc/yexi-poker#readme",
+  "bugs": {
+    "url": "https://github.com/jinxlzc/yexi-poker/issues"
+  }
+}

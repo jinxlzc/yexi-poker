@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-Hans" translate="no">
+<head>
+  <meta charset="utf-8">
+  <meta name="google" content="notranslate">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>分池 · 视觉稿</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="screen">
+  <header class="topbar">
+    <div class="brand">
+      <b>牌桌</b>
+      <span>今晚的牌局 · 摊牌</span>
+    </div>
+    <div class="roomcode">
+      <div>
+        <div class="code">4F2K</div>
+        <div class="addr mono">第 8 手</div>
+      </div>
+    </div>
+    <div class="top-meta">
+      <strong>指定每个池的赢家</strong>
+      <span>点一人独得，点多人即平分</span>
+    </div>
+  </header>
+
+  <div class="eq" role="status">
+    <span>分池前全场 <b class="num">10,040</b></span>
+    <span class="op">=</span>
+    <span>座位 <b class="num">8,839</b></span>
+    <span class="op">+</span>
+    <span>池中 <b class="num">1,201</b></span>
+    <span class="ok">预览后仍是 10,040</span>
+  </div>
+
+  <div class="settle">
+    <section class="panel">
+      <h2>两个池</h2>
+      <p class="hint">先选池，再选这个池的赢家。每个池都要指定。</p>
+      <div class="potpick">
+        <button class="is-on" type="button">
+          <div class="t"><b>主池</b><span class="num">1,001</span></div>
+          <p>已选 阿宁、林川 · 有余数</p>
+        </button>
+        <button type="button">
+          <div class="t"><b>边池</b><span class="num">200</span></div>
+          <p>已指定 林川 · 老陈无资格</p>
+        </button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>主池 1,001 的赢家</h2>
+      <p class="hint">有资格的人可以点。弃牌的人不出现在这里。</p>
+      <div class="winners">
+        <button class="winner is-on" type="button">
+          <span class="tick">平分</span>
+          <span class="name">阿宁</span>
+          <span class="sub">剩余 1,480 · 含余数</span>
+        </button>
+        <button class="winner is-on" type="button">
+          <span class="tick">平分</span>
+          <span class="name">林川</span>
+          <span class="sub">剩余 2,169</span>
+        </button>
+        <button class="winner" type="button">
+          <span class="name">小满</span>
+          <span class="sub">有资格 · 未选</span>
+        </button>
+        <button class="winner" type="button">
+          <span class="name">老陈</span>
+          <span class="sub">有资格 · 未选 · 已全下</span>
+        </button>
+      </div>
+      <div class="locked">
+        <div><b>周可</b>已弃牌，不能赢这个池</div>
+        <div><b>何麦</b>已弃牌，不能赢这个池</div>
+      </div>
+    </section>
+
+    <section class="panel preview">
+      <h2>分配预览</h2>
+      <p class="remainder">主池 1,001 由 2 人平分，每人 500，余 1。庄是周可，从他左侧数起，第一位赢家是阿宁，这 1 个给阿宁。边池 200 由林川一人拿走。</p>
+      <div class="line"><span>阿宁</span><span class="num">+501</span></div>
+      <div class="line"><span>林川</span><span class="num">+700</span></div>
+      <div class="line is-zero"><span>小满</span><span class="num">+0</span></div>
+      <div class="line is-zero"><span>老陈</span><span class="num">+0</span></div>
+      <div class="line is-zero"><span>周可</span><span class="num">+0</span></div>
+      <div class="line is-zero"><span>何麦</span><span class="num">+0</span></div>
+      <div class="balance-foot">
+        分出 <b class="num">1,201</b> · 池中归零<br>
+        分池后全场仍是 <b class="num">10,040</b> · 齐
+      </div>
+    </section>
+  </div>
+
+  <footer class="hostbar">
+    <button class="btn btn-ghost" type="button">返回牌桌</button>
+    <span class="spacer"></span>
+    <button class="btn btn-amber" type="button">确认这样分池</button>
+  </footer>
+
+</body>
+</html>

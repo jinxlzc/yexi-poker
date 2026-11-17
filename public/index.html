@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="zh-Hans" translate="no">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#060807">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="夜席">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <meta name="description" content="夜席：局域网朋友局，实体牌或电子牌，虚拟娱乐积分。">
+  <title>夜席 · 牌桌</title>
+  <link rel="preload" href="/fonts/inter-var.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/fonts/fraunces-rank.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/fonts/fonts.css">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/app.css">
+  <link rel="stylesheet" href="/cards/cards.css">
+  <link rel="stylesheet" href="/chips/chips.css">
+  <link rel="stylesheet" href="/night.css">
+  <script type="module" src="/app.js"></script>
+</head>
+<body class="is-phone">
+  <div id="app"><main class="boot"><span class="seal">夜</span><p>正在接回牌桌。</p></main></div>
+  <div id="fx" aria-hidden="true"></div>
+  <div id="sound-dock"></div>
+  <div id="toast" role="status" aria-live="polite" hidden></div>
+  <dialog id="modal" aria-labelledby="dialog-title"></dialog>
+  <noscript>请启用 JavaScript，以同步牌桌和操作筹码。</noscript>
+</body>
+</html>

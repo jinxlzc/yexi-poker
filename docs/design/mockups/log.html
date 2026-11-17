@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-Hans" translate="no">
+<head>
+  <meta charset="utf-8">
+  <meta name="google" content="notranslate">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>日志与撤销 · 视觉稿</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="screen">
+  <header class="topbar">
+    <div class="brand">
+      <b>牌桌</b>
+      <span>今晚的牌局</span>
+    </div>
+    <div class="roomcode">
+      <div class="code">4F2K</div>
+    </div>
+    <div class="top-meta">
+      <strong>第 7 手 · 操作记录</strong>
+      <span>每次只撤销最近一步</span>
+    </div>
+  </header>
+  <div class="eq" role="status">
+    <span>全场 <b class="num">10,040</b></span>
+    <span class="op">=</span>
+    <span>座位 <b class="num">8,590</b></span>
+    <span class="op">+</span>
+    <span>池中 <b class="num">1,450</b></span>
+    <span class="ok">齐</span>
+  </div>
+  <div class="logpage">
+    <div class="logsheet">
+      <h2>这一手发生过什么</h2>
+      <p class="lead">时间、谁、做了什么。高亮的是最近一步，撤销只会动它。要回到更早，就再撤一次。</p>
+      <ol class="transcript">
+        <li><time>21:14</time><div class="what"><span>开新一手</span> · <b>庄 周可</b> · 小盲 10 · 大盲 20</div></li>
+        <li><time>21:14</time><div class="what"><b>何麦</b> <span>小盲 10</span></div></li>
+        <li><time>21:14</time><div class="what"><b>小满</b> <span>大盲 20</span></div></li>
+        <li><time>21:14</time><div class="what"><b>老陈</b> <span>全下 200</span></div></li>
+        <li><time>21:15</time><div class="what"><b>阿宁</b> <span>跟注 200</span></div></li>
+        <li><time>21:15</time><div class="what"><b>林川</b> <span>跟注 200</span></div></li>
+        <li><time>21:15</time><div class="what"><b>周可</b> <span>弃牌</span></div></li>
+        <li><time>21:15</time><div class="what"><b>何麦</b> <span>弃牌</span></div></li>
+        <li><time>21:15</time><div class="what"><b>小满</b> <span>跟注 180</span></div></li>
+        <li><time>21:15</time><div class="what"><span>进入翻牌圈</span></div></li>
+        <li><time>21:16</time><div class="what"><b>小满</b> <span>下注 320</span></div></li>
+        <li class="is-last"><time>21:16</time><div class="what"><b>阿宁</b> <span>跟注 320</span></div></li>
+      </ol>
+    </div>
+    <div class="scrim">
+      <div class="dialog" role="dialog" aria-labelledby="undo-title">
+        <h3 id="undo-title">撤销上一步？</h3>
+        <p>只会撤回最近这一条。筹码和底池按它发生之前重算。</p>
+        <div class="quote">阿宁 · 跟注 320</div>
+        <p>撤回后全场仍是 10,040。后面没有更晚的记录。</p>
+        <div class="stack-btns">
+          <button class="btn btn-ghost btn-block" type="button">返回</button>
+          <button class="btn btn-clay-fill btn-block" type="button">确认撤销</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

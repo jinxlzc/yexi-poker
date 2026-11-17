@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-Hans" translate="no">
+<head>
+  <meta charset="utf-8">
+  <meta name="google" content="notranslate">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>加入与房间码 · 视觉稿</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="board">
+  <div class="canvas">
+    <header class="pagehead">
+      <h1>把牌桌交给同桌的人</h1>
+      <p>服务刚在这台电脑上起来。房间码、本机地址和二维码同时可见。手机扫进来之后只填名字、选空座。</p>
+    </header>
+    <div class="split">
+      <section class="laptop">
+        <div class="chrome">
+          <span class="mono">localhost:8787</span>
+          <span>主持凭证在这个浏览器里</span>
+        </div>
+        <div class="share">
+          <div>
+            <h2>今晚的牌局</h2>
+            <p class="lead">手机和这台电脑连同一个 Wi-Fi。把右边的码读出来，或让对方打开地址。公网打不开这个房间。</p>
+            <ul class="rules">
+              <li><span>小盲</span><b class="num">10</b></li>
+              <li><span>大盲</span><b class="num">20</b></li>
+              <li><span>起始筹码</span><b class="num">2,000</b></li>
+              <li><span>补码</span><b>关闭</b></li>
+              <li><span>人数</span><b>2–10，来了再坐</b></li>
+            </ul>
+            <div class="empty-note">还没有人坐下。至少两位有筹码的玩家入座后，才能开新的一手。</div>
+          </div>
+          <div class="qrbox">
+            <img src="qr.svg" alt="示意二维码，视觉稿不能扫描">
+            <p class="code-xl">4F2K</p>
+            <p class="addr mono">http://192.168.1.23:8787</p>
+            <p class="cap">示意码，用来看尺寸和留白。正式页面编码真实加入链接，深色模块印在浅底上。</p>
+          </div>
+        </div>
+      </section>
+
+      <div class="device-wrap">
+        <p class="label">朋友的手机 · 扫码之后</p>
+        <div class="device" style="height:640px">
+          <div class="browserbar mono">192.168.1.23:8787/join</div>
+          <div class="phone">
+            <div class="phone-top">
+              <b>加入牌桌</b>
+              <span>房间 4F2K</span>
+            </div>
+            <div class="me">
+              <p class="nm">今晚的牌局 · 小盲 10 / 大盲 20</p>
+              <h2>你的名字</h2>
+              <div class="stack num" style="font-size:36px">林川</div>
+              <p class="sub">1–8 个字。这个房间里不能重名。</p>
+            </div>
+            <div class="plate">
+              <div class="grid" style="grid-template-columns:repeat(3,1fr)">
+                <div class="cell"><span>座位 1</span><b>空</b></div>
+                <div class="cell" style="color:var(--amber)"><span>座位 2</span><b>你</b></div>
+                <div class="cell"><span>座位 3</span><b>空</b></div>
+              </div>
+            </div>
+            <p class="sub" style="color:var(--text-dim);font-size:13px">起始筹码 2,000，由房间决定。你不能自己改数字。</p>
+            <div class="dock">
+              <button class="btn btn-amber btn-block" type="button">坐到 2 号位</button>
+              <p class="fine">若本手已开始，你会从下一手才进入行动</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

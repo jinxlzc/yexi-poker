@@ -1,0 +1,23 @@
+/* 夜席 v3 · 陶瓷筹码。顶面带 6 块镶片与内圈细线，侧面齿边。 */
+.chipstack { --cw: 26px; display: inline-flex; align-items: flex-end; gap: 3px; flex: none; }
+.chipcol { position: relative; width: var(--cw); height: calc(var(--n, 1) * 3.4px + var(--cw) * .5 + 2px); flex: none; }
+.chip { position: absolute; left: 0; bottom: calc(var(--i) * 3.4px); width: var(--cw); height: calc(var(--cw) * .5); border-radius: 50%; background: var(--c);
+  box-shadow: 0 1px 0 rgba(0,0,0,.45), 0 2px 0 color-mix(in srgb, var(--c) 55%, #000); }
+.chip::before { content: ''; position: absolute; inset: 0; border-radius: 50%; opacity: .9;
+  background: repeating-linear-gradient(90deg, transparent 0 3px, var(--spot) 3px 5.5px, transparent 5.5px 9px);
+  -webkit-mask: linear-gradient(180deg, transparent 52%, #000 56%); mask: linear-gradient(180deg, transparent 52%, #000 56%); }
+.chip.is-cap::after { content: ''; position: absolute; left: 0; right: 0; top: -1px; height: 88%; border-radius: 50%;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--c) 90%, #fff) 0 46%, color-mix(in srgb, var(--spot) 70%, transparent) 48% 52%, var(--c) 54% 64%, transparent 65%),
+    repeating-conic-gradient(from 12deg, var(--spot) 0 18deg, var(--c) 18deg 60deg);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.3); }
+.chip-white { --c: #e9e2d0; --spot: #5b6b7a; }
+.chip-blue { --c: #b2443a; --spot: #f1e5d2; }
+.chip-green { --c: #2f7a5c; --spot: #efe6d2; }
+.chip-black { --c: #23272b; --spot: #d8c08e; }
+.chip-purple { --c: #6d4b8c; --spot: #f0e2c6; }
+.chip-amber { --c: #c99a45; --spot: #3a2a12; }
+#fx { position: fixed; inset: 0; pointer-events: none; z-index: 40; }
+.chip-flight { position: absolute; will-change: transform; filter: drop-shadow(0 8px 10px rgba(0,0,0,.5)); }
+.sound-unlock { position: fixed; right: 20px; bottom: 104px; z-index: 30; display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 999px; border: 0; font: inherit; font-size: 13px; color: var(--text);
+  background: rgba(20,25,24,.86); backdrop-filter: blur(16px); box-shadow: inset 0 0 0 1px rgba(227,196,138,.45), 0 16px 30px -10px rgba(0,0,0,.8); }
+@media (prefers-reduced-motion: reduce) { .chip-flight { display: none; } }
