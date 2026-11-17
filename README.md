@@ -2,6 +2,19 @@
 
 # 夜席 Yexi · 线下德州扑克牌桌
 
+<p align="center">
+  <img src="docs/screenshots/table-run-twice.webp" alt="大屏牌桌：电子牌跑两次，两组公共牌" width="100%">
+</p>
+<p align="center">
+  <img src="docs/screenshots/phone-run-it.webp" alt="手机：全下后投票跑几次" width="24%">
+  <img src="docs/screenshots/phone-zh.webp" alt="手机：简体中文界面" width="24%">
+  <img src="docs/screenshots/phone-en.webp" alt="手机：英文界面" width="24%">
+  <img src="docs/screenshots/phone-ja.webp" alt="手机：日文界面" width="24%">
+</p>
+<p align="center">
+  <img src="docs/screenshots/table-physical-pools.webp" alt="实体牌模式：主持按轮次和底池选择赢家" width="100%">
+</p>
+
 面对面打德州扑克，手机记虚拟筹码。电脑开本地服务，同一 Wi-Fi 的手机扫码加入。可以选择 **实体牌**（自己发牌，系统只记筹码）或 **电子牌**（系统洗牌发牌，底牌只在自己手机上，摊牌按牌力分池）。**仅娱乐积分，无充值、提现或真钱兑换。** 不计算胜率、赔率或 GTO。
 
 > **免责声明**：夜席只记录**虚拟娱乐积分**，用于朋友之间面对面的娱乐局、学习和复盘。它没有、也永远不会有充值、提现、转账、真钱换算或「谁该付谁多少钱」的功能。请不要把它用于任何形式的赌博，并遵守你所在地的法律。

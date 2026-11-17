@@ -2,6 +2,19 @@
 
 # Yexi · Texas Hold’em around one table
 
+<p align="center">
+  <img src="docs/screenshots/table-en.webp" alt="Host table screen in English" width="100%">
+</p>
+<p align="center">
+  <img src="docs/screenshots/phone-en.webp" alt="Phone view in English" width="24%">
+  <img src="docs/screenshots/phone-run-it.webp" alt="Voting how many times to run it after an all-in" width="24%">
+  <img src="docs/screenshots/phone-ja.webp" alt="Phone view in Japanese" width="24%">
+  <img src="docs/screenshots/phone-straddle.webp" alt="Opting in to a straddle" width="24%">
+</p>
+<p align="center">
+  <img src="docs/screenshots/table-run-twice.webp" alt="Running it twice with digital cards: two boards" width="100%">
+</p>
+
 Play face-to-face Texas Hold’em while phones track virtual chips. One computer runs a local server, and phones on the same Wi-Fi scan a QR code to join. Choose **physical cards** (deal your own cards while the app tracks chips) or **digital cards** (the app shuffles and deals, keeps hole cards on each player’s phone, and awards pots by hand strength at showdown). **Entertainment points only: no deposits, withdrawals, or conversion to real money.** Yexi does not calculate equity, odds, or GTO strategies.
 
 > **Disclaimer:** Yexi records **virtual entertainment points** for friends playing, learning, and reviewing hands together in person. It has no deposit, withdrawal, transfer, cash conversion, or payment-settlement features, and never will. Do not use it for gambling, and follow the laws where you live.
