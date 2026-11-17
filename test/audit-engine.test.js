@@ -5,7 +5,7 @@ import { makeDeck, setNextDeck } from '../server/cards.js';
 import { summarize } from '../server/summary.js';
 
 function table(stacks, config = {}) {
-  let s = newRoom('TEST', { startingStack: 1000, ...config });
+  let s = newRoom('TEST', { startingStack: 1000, runouts: 1, ...config });
   for (const [i, stack] of stacks.entries()) {
     const id = `p${i + 1}`;
     s = apply(s, 'join', { id, name: `玩家${i + 1}`, seat: i + 1 });

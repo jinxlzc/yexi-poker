@@ -24,6 +24,10 @@ async function setup(page, browser, config = {}) {
   if (config.bigBlind) await page.getByLabel('大盲', { exact: true }).fill(String(config.bigBlind));
   if (config.startingStack) await page.getByLabel('起始筹码', { exact: true }).fill(String(config.startingStack));
   if (config.rebuy) await page.getByLabel('打开补码', { exact: false }).check();
+  if (config.runouts) {
+    await page.locator('.more-set summary').click();
+    await page.locator('[name=runouts]').selectOption(String(config.runouts));
+  }
   if (config.dealMode === 'digital') await page.getByRole('radio', { name: '电子牌', exact: true }).check();
   else await page.getByRole('radio', { name: '实体牌', exact: true }).check();
   await page.getByRole('button', { name: '创建房间', exact: true }).click();
@@ -31,7 +35,7 @@ async function setup(page, browser, config = {}) {
   const code = new URL(page.url()).searchParams.get('room');
   const contexts = [], phones = [];
   for (const name of config.names || ['阿宁', '林川', '小满']) {
-    const context = await browser.newContext({ viewport: { width: 375, height: 667 }, isMobile: true, deviceScaleFactor: 1 });
+    const context = await browser.newContext({ locale: 'zh-CN', viewport: { width: 375, height: 667 }, isMobile: true, deviceScaleFactor: 1 });
     await context.addInitScript(() => localStorage.setItem('night-table.sound', 'off'));
     contexts.push(context);
     const phone = await context.newPage(); phones.push(phone); phone.on('pageerror', e => errors.push(e.message));
@@ -154,7 +158,7 @@ test('heads-up markers, 320px and 10-player layouts, spectator view, and local-o
     await page.screenshot({ path: info.outputPath('ten-seats.png'), fullPage: true });
     const boxes = await page.locator('.seat').evaluateAll(elements => elements.map(el => { const r = el.getBoundingClientRect(); return { x: r.x, y: r.y, right: r.right, bottom: r.bottom }; }));
     for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) expect(boxes[i].right <= boxes[j].x || boxes[j].right <= boxes[i].x || boxes[i].bottom <= boxes[j].y || boxes[j].bottom <= boxes[i].y).toBe(true);
-    const context = await browser.newContext({ viewport: { width: 375, height: 667 } }); extra.push(context);
+    const context = await browser.newContext({ locale: 'zh-CN', viewport: { width: 375, height: 667 } }); extra.push(context);
     const spectator = await context.newPage(); await spectator.goto(`${phoneBase}/table?room=${f.code}`);
     await expect(spectator.getByRole('link', { name: '我要加入', exact: true })).toBeVisible();
     await expect(spectator.locator('.hostbar')).toHaveCount(0);
@@ -170,7 +174,7 @@ test('heads-up markers, 320px and 10-player layouts, spectator view, and local-o
 });
 
 test('host rebuy creates unequal stacks, selects different side-pot winners, settles and undoes', async ({ page, browser }, info) => {
-  const f = await setup(page, browser, { startingStack: 100, rebuy: true });
+  const f = await setup(page, browser, { startingStack: 100, rebuy: true, runouts: 1 });
   try {
     await f.table(); await page.getByRole('button', { name: /^座位/ }).click();
     for (const [name, amount] of [['林川', 100], ['小满', 200]]) {
@@ -209,7 +213,7 @@ test('host rebuy creates unequal stacks, selects different side-pot winners, set
 });
 
 test('digital mode: private hole cards, board after all-in, auto judgment and conserved settlement', async ({ page, browser }, info) => {
-  const f = await setup(page, browser, { names: ['阿宁', '林川'], dealMode: 'digital', smallBlind: 10, bigBlind: 20, startingStack: 100 });
+  const f = await setup(page, browser, { names: ['阿宁', '林川'], dealMode: 'digital', smallBlind: 10, bigBlind: 20, startingStack: 100, runouts: 1 });
   try {
     await f.table();
     await page.getByRole('button', { name: /^新的一手/ }).click();

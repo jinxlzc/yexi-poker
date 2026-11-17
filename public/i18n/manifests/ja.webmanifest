@@ -1,0 +1,30 @@
+{
+  "name": "夜席 · 仲間とポーカー",
+  "short_name": "夜席",
+  "description": "同じネットワークで楽しむポーカー。実物・電子カード対応。遊び専用のチップを使用。",
+  "lang": "ja",
+  "start_url": "/join",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#060807",
+  "theme_color": "#060807",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

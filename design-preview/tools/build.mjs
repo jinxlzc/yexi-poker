@@ -144,7 +144,7 @@ console.log('built');
     <h1>夜席</h1>
     <div class="sub">一张桌子，几部手机，今晚的局就开了。</div>
     <p>这台电脑当牌桌，大家用手机扫码入座、下注。可以用电子牌让系统洗牌发牌，也可以照旧用实体牌，只把筹码交给夜席。</p>
-    <div class="lan pill">${ICON.wifi}<span>手机连同一 Wi‑Fi，打开</span><b class="num">192.168.1.23:8787</b></div>
+    <div class="lan pill">${ICON.wifi}<span>手机连同一 Wi‑Fi，打开</span><b class="num">LAN_HOST:8787</b></div>
   </section>
   <div class="still">${card('Kh', { w: 108, cls: 'c1' })}${card('As', { w: 108, cls: 'c2' })}${card('back', { w: 108, cls: 'c3' })}${chips(0, { w: 46, cols: 3, groups: [[1000, 6], [500, 4], [100, 8]] })}</div>
   <section class="panel">

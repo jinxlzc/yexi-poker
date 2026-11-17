@@ -1,8 +1,9 @@
+import { msg, joinMessages, describe, defaultText } from './messages.js';
 import { DatabaseSync } from 'node:sqlite';
 import { createHash, randomBytes, randomInt, randomUUID } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
-import { apply, assertConservation, legalActions, newRoom, pots, requireRule, RuleError, clipView, normalizeRoom, isEnded, levelBlinds, ongoing, isDigital } from './engine.js';
+import { apply, assertConservation, legalActions, newRoom, pots, runPots, requireRule, RuleError, clipView, normalizeRoom, isEnded, levelBlinds, ongoing, isDigital } from './engine.js';
 import { useCryptoRandom, isCard } from './cards.js';
 import { summarize } from './summary.js';
 useCryptoRandom(randomInt);
@@ -10,9 +11,9 @@ useCryptoRandom(randomInt);
 const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 export const hashToken = token => createHash('sha256').update(token || '').digest('hex');
 export const freshToken = () => randomBytes(32).toString('hex');
-const HOST_ACTIONS = new Set(['start', 'next', 'settle', 'preview', 'undo', 'rebuy', 'rebuySetting', 'move', 'seat', 'setDealMode', 'timeout', 'pause', 'level', 'settings', 'end']);
-const PLAYER_ACTIONS = new Set(['act', 'leave', 'show', 'sitOut']);
-const EITHER = new Set(['leave', 'sitOut']);
+const HOST_ACTIONS = new Set(['start', 'next', 'settle', 'preview', 'undo', 'rebuy', 'rebuySetting', 'move', 'seat', 'setDealMode', 'timeout', 'pause', 'level', 'settings', 'end', 'runOnce']);
+const PLAYER_ACTIONS = new Set(['act', 'leave', 'show', 'sitOut', 'runVote', 'straddle']);
+const EITHER = new Set(['leave', 'sitOut', 'runVote', 'straddle']);
 const CLAIM_TTL = 15 * 60_000;
 const validToken = token => typeof token === 'string' && /^[a-f0-9]{64}$/.test(token);
 // 撤销快照不存日志和牌谱：二者只追加，撤销时按长度从当前状态截回。牌谱最后一条可能被「亮牌」改写，所以单独存。
@@ -40,7 +41,7 @@ export class Store {
         return { code: r.code, name: s.config.name, status: s.status, createdAt: s.createdAt, endedAt: s.endedAt, hands: s.handNumber, players: Object.keys(s.roster).length, mode: s.config.dealMode };
       } catch {
         // 保留坏行供人工恢复；一间损坏房间不能拖垮所有健康房间的入口。
-        return { code: r.code, name: '房间数据损坏，请从备份恢复', status: 'unavailable', hands: 0, players: 0 };
+        return { code: r.code, name: msg('room.damaged').text, nameMessage: msg('room.damaged'), status: 'unavailable', hands: 0, players: 0 };
       }
     }).sort((a, b) => String(b.endedAt || b.createdAt).localeCompare(String(a.endedAt || a.createdAt)));
   }
@@ -50,32 +51,36 @@ export class Store {
     const hit = this.cache.get(code);
     if (hit) return hit.text;
     const row = this.db.prepare('SELECT record FROM rooms WHERE code = ?').get(code);
-    requireRule(!!row, '没有这个房间码。', 404);
+    requireRule(!!row, msg('error.roomMissing'), 404);
     this.cache.set(code, { text: row.record, record: null });
     return row.record;
   }
   parse(text) {
     try {
       const record = JSON.parse(text), s = record.state;
-      requireRule(s && Array.isArray(s.players) && s.config && typeof record.hostHash === 'string', '坏记录');
-      for (const k of ['logs', 'records']) requireRule(s[k] == null || Array.isArray(s[k]), '坏记录');
-      for (const k of ['smallBlind', 'bigBlind', 'startingStack']) requireRule(Number.isSafeInteger(s.config[k]), '坏设置');
+      requireRule(s && Array.isArray(s.players) && s.config && typeof record.hostHash === 'string', msg('error.badRecord'));
+      for (const k of ['logs', 'records']) requireRule(s[k] == null || Array.isArray(s[k]), msg('error.badRecord'));
+      for (const k of ['smallBlind', 'bigBlind', 'startingStack']) requireRule(Number.isSafeInteger(s.config[k]), msg('error.badSettings'));
       newRoom(s.code, s.config); // 同创建时的数值范围校验。
       normalizeRoom(s);
       assertConservation(s);
-      requireRule(s.players.every(p => typeof p.id === 'string' && typeof p.name === 'string' && Number.isInteger(p.seat) && p.seat >= 1 && p.seat <= 10) && new Set(s.players.map(p => p.id)).size === s.players.length, '坏座位');
+      requireRule(s.players.every(p => typeof p.id === 'string' && typeof p.name === 'string' && Number.isInteger(p.seat) && p.seat >= 1 && p.seat <= 10) && new Set(s.players.map(p => p.id)).size === s.players.length, msg('error.badSeats'));
       if (ongoing(s) && isDigital(s)) {
         const h = s.hand;
-        requireRule(h.participants.every(id => h.holes[id]?.length === 2), '底牌缺失');
-        const cards = [...Object.values(h.holes).flat(), ...h.deck, ...h.board, ...h.burned];
-        requireRule(cards.length === 52 && cards.every(isCard) && new Set(cards).size === 52, '牌叠损坏');
+        requireRule(h.participants.every(id => h.holes[id]?.length === 2), msg('error.holesMissing'));
+        requireRule(h.boards.length === h.runs && JSON.stringify(h.boards[0]) === JSON.stringify(h.board), msg('error.boardDamaged'));
+        requireRule([0, 3, 4].includes(h.sharedBoardCount), msg('error.boardPrefix'));
+        requireRule(h.boards.every(b => Array.isArray(b) && [0, 3, 4, 5].includes(b.length) && b.length >= h.sharedBoardCount && b.slice(0, h.sharedBoardCount).every((c, i) => c === h.board[i])), msg('error.boardDamaged'));
+        const boardCards = h.boards.flatMap((board, i) => i === 0 ? board : board.slice(h.sharedBoardCount));
+        const cards = [...Object.values(h.holes).flat(), ...h.deck, ...boardCards, ...h.burned];
+        requireRule(cards.length === 52 && cards.every(isCard) && new Set(cards).size === 52, msg('error.deckDamaged'));
       }
-      for (const k of ['claims', 'asks', 'history', 'requests']) { record[k] ??= []; requireRule(Array.isArray(record[k]), '坏记录'); }
+      for (const k of ['claims', 'asks', 'history', 'requests']) { record[k] ??= []; requireRule(Array.isArray(record[k]), msg('error.badRecord')); }
       record.transfer ??= null; record.playerHashes ??= {};
-      requireRule(typeof record.playerHashes === 'object' && !Array.isArray(record.playerHashes), '坏凭证');
+      requireRule(typeof record.playerHashes === 'object' && !Array.isArray(record.playerHashes), msg('error.credentialsDamaged'));
       return record;
     } catch {
-      throw new RuleError('房间数据损坏，已保留原记录。请从备份恢复。', 503);
+      throw new RuleError(msg('error.roomDamaged'), 503);
     }
   }
   get(code) { return this.parse(this.text(code)); }
@@ -109,20 +114,20 @@ export class Store {
     return { role: 'spectator', playerId: null };
   }
   checkpoint(record, next, label) {
-    record.history.push({ state: compact(record.state), label,
+    record.history.push({ state: compact(record.state), label: defaultText(label), labelMessage: describe(label),
       ...(next.status === 'ended' ? { pending: { claims: record.claims, asks: record.asks } } : {}) });
     if (record.history.length > 200) record.history.shift();
     next.version = record.state.version + 1;
     record.state = next;
   }
   join(code, args) {
-    requireRule(validToken(args.token), '设备凭证无效。');
+    requireRule(validToken(args.token), msg('error.deviceToken'));
     const record = this.get(code), hash = hashToken(args.token), identity = this.identity(record, args.token);
     if (identity.role === 'player') return;
-    requireRule(identity.role !== 'host', '这台设备是主持。请用另一个浏览器或手机入座。');
+    requireRule(identity.role !== 'host', msg('error.hostDevice'));
     const id = identity.role === 'departed' ? identity.playerId : randomUUID();
     const next = apply(record.state, 'join', { name: args.name, seat: args.seat, id });
-    this.checkpoint(record, next, `${args.name}入座`);
+    this.checkpoint(record, next, msg('undo.join', { name: args.name }));
     record.playerHashes[hash] = id;
     this.save(record);
   }
@@ -131,63 +136,65 @@ export class Store {
     const { type, version, requestId } = command;
     let args = command.args && typeof command.args === 'object' && !Array.isArray(command.args) ? { ...command.args } : {};
     if (HOST_ACTIONS.has(type) || (EITHER.has(type) && identity.role !== 'player')) {
-      requireRule(identity.role === 'host', '没有主持权限。分池、撤销和开新一手只在主持那台电脑上。', 403);
-    } else requireRule(PLAYER_ACTIONS.has(type) && identity.role === 'player', '只能操作自己的座位。', 403);
-    if (identity.role === 'player' && args.playerId !== undefined) requireRule(args.playerId === identity.playerId, '只能操作自己的座位。', 403);
-    requireRule(typeof requestId === 'string' && requestId.length >= 8 && requestId.length <= 100, '缺少操作编号。');
+      requireRule(identity.role === 'host', msg('error.hostActions'), 403);
+    } else requireRule(PLAYER_ACTIONS.has(type) && identity.role === 'player', msg('error.ownSeat'), 403);
+    if (identity.role === 'player' && args.playerId !== undefined) requireRule(args.playerId === identity.playerId, msg('error.ownSeat'), 403);
+    requireRule(typeof requestId === 'string' && requestId.length >= 8 && requestId.length <= 100, msg('error.requestId'));
     const requestKey = `${hashToken(token)}:${requestId}`;
     if (record.requests.includes(requestKey)) return { duplicate: true };
-    requireRule(version === record.state.version, '这一步没有送出。牌桌已经变了，看一下再操作。', 409);
+    requireRule(version === record.state.version, msg('error.staleVersion'), 409);
     delete args.actorOffline;
     if (type === 'timeout') { const actor = record.state.hand?.actor; args.actorOffline = Array.isArray(context.online) && !!actor && !context.online.includes(actor); }
-    let notice;
+    if (type === 'runVote' && identity.role === 'host') args.actorOffline = Array.isArray(context.online) && typeof args.playerId === 'string' && !context.online.includes(args.playerId);
+    let notice, noticeMessage;
     if (type === 'undo') {
-      const previous = record.history.pop(); requireRule(!!previous, '这一手还没有操作。');
+      const previous = record.history.pop(); requireRule(!!previous, msg('error.noUndo'));
       const version = record.state.version + 1;
       record.state = normalizeRoom(expand(previous.state, record.state)); record.state.version = version;
       if (previous.pending) { record.claims = previous.pending.claims; record.asks = previous.pending.asks; }
-      notice = `已撤销：${previous.label}`;
+      noticeMessage = msg('undo.notice', { action: previous.labelMessage || previous.label });
+      notice = noticeMessage.text;
     } else {
       const next = apply(record.state, type, args, identity.playerId);
       if (type === 'preview') { next.version = record.state.version + 1; record.state = next; }
-      else this.checkpoint(record, next, type === 'start' ? '开新一手，盲注会退回' : type === 'settle' ? '分池结果' : type === 'end' ? '散场（牌局会恢复）' : next.logs.slice(record.state.logs.length).map(e => e.text).join('；'));
+      else this.checkpoint(record, next, type === 'start' ? msg('undo.start') : type === 'settle' ? msg('undo.settle') : type === 'end' ? msg('undo.end') : joinMessages(next.logs.slice(record.state.logs.length), msg('separator.history')));
     }
     if (type === 'end') { record.claims = record.claims.filter(c => c.status !== 'pending'); record.asks = []; }
     record.requests.push(requestKey); record.requests = record.requests.slice(-512);
     this.save(record);
-    return { notice };
+    return { notice, noticeMessage };
   }
   // 丢了凭证：新设备提出认领，主持确认后把座位凭证换到新设备，旧设备随即失效。
   claim(code, args) {
-    requireRule(validToken(args.token), '设备凭证无效。');
+    requireRule(validToken(args.token), msg('error.deviceToken'));
     const record = this.get(code), hash = hashToken(args.token), identity = this.identity(record, args.token);
-    requireRule(!isEnded(record.state), '牌局已经结束，只能查看。');
-    requireRule(identity.role === 'spectator', identity.role === 'host' ? '这台设备是主持。' : '这台手机已经有座位了。');
-    requireRule(typeof args.playerId === 'string' && Object.hasOwn(record.state.roster, args.playerId), '没有这个座位。');
+    requireRule(!isEnded(record.state), msg('error.ended'));
+    requireRule(identity.role === 'spectator', identity.role === 'host' ? msg('error.deviceIsHost') : msg('error.deviceSeated'));
+    requireRule(typeof args.playerId === 'string' && Object.hasOwn(record.state.roster, args.playerId), msg('error.noSuchSeat'));
     const target = record.state.roster[args.playerId];
-    requireRule(!!target, '没有这个座位。');
+    requireRule(!!target, msg('error.noSuchSeat'));
     const now = Date.now();
     record.claims = record.claims.filter(c => c.status === 'pending' ? now - c.at < CLAIM_TTL : now - c.at < 60 * 60_000).filter(c => c.hash !== hash);
-    requireRule(record.claims.filter(c => c.status === 'pending').length < 10, '认领请求太多了，请主持人先处理。');
+    requireRule(record.claims.filter(c => c.status === 'pending').length < 10, msg('error.tooManyClaims'));
     record.claims.push({ id: randomBytes(8).toString('hex'), hash, playerId: target.id, at: now, status: 'pending' });
     this.save(record);
   }
   decideClaim(code, token, { claimId, approve }) {
     const record = this.get(code);
-    requireRule(this.identity(record, token).role === 'host', '没有主持权限。', 403);
-    requireRule(!isEnded(record.state), '牌局已经结束，只能查看。');
+    requireRule(this.identity(record, token).role === 'host', msg('error.hostRequired'), 403);
+    requireRule(!isEnded(record.state), msg('error.ended'));
     const claim = record.claims.find(c => c.id === claimId && c.status === 'pending' && Date.now() - c.at < CLAIM_TTL);
-    requireRule(!!claim, '这个认领已经处理过，或已过期。');
+    requireRule(!!claim, msg('error.claimExpired'));
     const ownedId = record.playerHashes[claim.hash];
     const hasIdentity = ownedId && (record.state.roster[ownedId] || record.state.players.some(p => p.id === ownedId));
-    requireRule(Object.hasOwn(record.state.roster, claim.playerId) && !hasIdentity && record.hostHash !== claim.hash, '座位或申请人的身份已变化，请重新申请。');
+    requireRule(Object.hasOwn(record.state.roster, claim.playerId) && !hasIdentity && record.hostHash !== claim.hash, msg('error.claimChanged'));
     claim.status = approve === true ? 'approved' : 'denied';
     const name = record.state.roster[claim.playerId]?.name;
     if (claim.status === 'approved') {
       for (const [h, id] of Object.entries(record.playerHashes)) if (id === claim.playerId) delete record.playerHashes[h];
       record.playerHashes[claim.hash] = claim.playerId;
       for (const other of record.claims) if (other !== claim && other.playerId === claim.playerId && other.status === 'pending') other.status = 'denied';
-      record.state.logs.push({ id: `${record.state.version + 1}-${record.state.logs.length}`, at: new Date().toISOString(), hand: record.state.handNumber, text: `${name} 换了手机，主持已确认`, kind: 'claim' });
+      record.state.logs.push({ id: `${record.state.version + 1}-${record.state.logs.length}`, at: new Date().toISOString(), hand: record.state.handNumber, ...msg('log.claim', { name }), kind: 'claim' });
     }
     record.state.version += 1;
     this.save(record);
@@ -196,18 +203,18 @@ export class Store {
   // 手机申请补码：只是请求，主持同意后才真正加筹码（仍走 rebuy 规则与日志）。
   ask(code, token) {
     const record = this.get(code), identity = this.identity(record, token);
-    requireRule(identity.role === 'player', '只能为自己的座位申请。', 403);
-    requireRule(!isEnded(record.state), '牌局已经结束，只能查看。');
-    requireRule(record.state.config.rebuy, '这桌没有打开补码。');
-    requireRule(!record.asks.some(a => a.playerId === identity.playerId), '已经申请过了，等主持人处理。');
+    requireRule(identity.role === 'player', msg('error.ownSeatRequest'), 403);
+    requireRule(!isEnded(record.state), msg('error.ended'));
+    requireRule(record.state.config.rebuy, msg('error.rebuyDisabled'));
+    requireRule(!record.asks.some(a => a.playerId === identity.playerId), msg('error.askPending'));
     record.asks.push({ id: randomBytes(8).toString('hex'), playerId: identity.playerId, at: Date.now() });
     this.save(record);
   }
   decideAsk(code, token, { askId, approve, amount, requestId }) {
     const record = this.get(code);
-    requireRule(this.identity(record, token).role === 'host', '没有主持权限。', 403);
+    requireRule(this.identity(record, token).role === 'host', msg('error.hostRequired'), 403);
     const ask = record.asks.find(a => a.id === askId);
-    requireRule(!!ask, '这个申请已经处理过。');
+    requireRule(!!ask, msg('error.askHandled'));
     if (approve === true) {
       this.command(code, token, { type: 'rebuy', args: { playerId: ask.playerId, amount }, version: record.state.version, requestId: requestId || randomUUID() });
       const fresh = this.get(code); fresh.asks = fresh.asks.filter(a => a.id !== askId); this.save(fresh);
@@ -215,15 +222,15 @@ export class Store {
   }
   transfer(code, token) {
     const record = this.get(code);
-    requireRule(this.identity(record, token).role === 'host', '没有主持权限。', 403);
+    requireRule(this.identity(record, token).role === 'host', msg('error.hostRequired'), 403);
     const secret = randomBytes(16).toString('hex');
     record.transfer = { hash: hashToken(secret), expires: Date.now() + 5 * 60_000 };
     this.save(record); return secret;
   }
   acceptTransfer(code, secret) {
-    requireRule(typeof secret === 'string' && /^[a-f0-9]{32}$/.test(secret), '移交码无效或已过期。', 403);
+    requireRule(typeof secret === 'string' && /^[a-f0-9]{32}$/.test(secret), msg('error.transferCode'), 403);
     const record = this.get(code);
-    requireRule(record.transfer && record.transfer.expires > Date.now() && record.transfer.hash === hashToken(secret), '移交码无效或已过期。', 403);
+    requireRule(record.transfer && record.transfer.expires > Date.now() && record.transfer.hash === hashToken(secret), msg('error.transferCode'), 403);
     const token = freshToken();
     record.hostHash = hashToken(token); record.transfer = null; record.state.version += 1;
     this.save(record); return token;
@@ -236,9 +243,9 @@ export class Store {
   }
   rematch(code, token) {
     const record = this.get(code);
-    requireRule(this.identity(record, token).role === 'host', '没有主持权限。', 403);
-    requireRule(isEnded(record.state), '散场之后才能用同样设置再开一桌。');
-    requireRule(!record.state.nextRoom, '已经开过新桌了。');
+    requireRule(this.identity(record, token).role === 'host', msg('error.hostRequired'), 403);
+    requireRule(isEnded(record.state), msg('error.rematchAfterEnd'));
+    requireRule(!record.state.nextRoom, msg('error.rematchExists'));
     const { config } = record.state;
     const created = this.create({ ...config });
     record.state.nextRoom = created.code; record.state.version += 1;
@@ -261,8 +268,9 @@ export class Store {
       if (mine) extra.claim = { status: mine.status === 'pending' && Date.now() - mine.at >= CLAIM_TTL ? 'expired' : mine.status, name: record.state.roster[mine.playerId]?.name };
     } else if (identity.role === 'player') extra.asked = record.asks.some(a => a.playerId === identity.playerId);
     if (isEnded(record.state) || identity.role === 'departed') extra.summary = summarize(record.state);
-    return { state, hole, ...identity, legal: legalActions(record.state, identity.playerId), pots: pots(record.state), online, blinds: levelBlinds(record.state),
-      lastUndo: identity.role === 'host' ? record.history.at(-1)?.label ?? null : null, now: Date.now(), ...extra };
+    return { state, hole, ...identity, legal: legalActions(record.state, identity.playerId), pots: pots(record.state), runPots: runPots(record.state), online, blinds: levelBlinds(record.state),
+      lastUndo: identity.role === 'host' ? record.history.at(-1)?.label ?? null : null,
+      lastUndoMessage: identity.role === 'host' ? record.history.at(-1)?.labelMessage ?? null : null, now: Date.now(), ...extra };
   }
   close() { this.db.close(); }
 }

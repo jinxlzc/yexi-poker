@@ -1,7 +1,8 @@
+import { msg } from './messages.js';
 // 52 张标准扑克：编码为点数+花色，如 As、Td、2c。纯函数判定，洗牌随机源由 useCryptoRandom 注入。
 const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'];
 const SUITS = ['s', 'h', 'd', 'c'];
-export const CATEGORIES = ['高牌', '一对', '两对', '三条', '顺子', '同花', '葫芦', '四条', '同花顺', '皇家同花顺'];
+export const CATEGORIES = Array.from({ length: 10 }, (_, category) => msg(`hand.${category}`).text);
 export const RANK_VALUE = Object.fromEntries(RANKS.map((r, i) => [r, i + 2]));
 
 export const cardRank = code => code[0];
@@ -19,7 +20,7 @@ export function useCryptoRandom(fn) { randInt = fn; }
 export function setNextDeck(deck) { nextDeck = deck ? [...deck] : null; }
 
 export function shuffle(source = makeDeck(), rand = randInt) {
-  if (typeof rand !== 'function') throw new Error('洗牌需要安全随机源。');
+  if (typeof rand !== 'function') throw Object.assign(new Error(msg('error.shuffle').text), msg('error.shuffle'));
   const deck = [...source];
   for (let i = deck.length - 1; i > 0; i--) {
     const j = rand(i + 1);
@@ -102,8 +103,11 @@ export function evaluate(cards) {
   return { rank: best, cards: bestCards };
 }
 
+export function handNameMessage(result) {
+  return msg(`hand.${result.rank[0]}`);
+}
 export function handName(result) {
-  return CATEGORIES[result.rank[0]];
+  return handNameMessage(result).text;
 }
 
 export function winnersAmong(ids, holes, board) {
@@ -127,9 +131,13 @@ export function sameSelections(a, b) {
 
 const VALUE_LABEL = v => ({ 14: 'A', 13: 'K', 12: 'Q', 11: 'J', 10: '10' }[v] || String(v));
 // 中文牌型描述，例如「葫芦 · K 带 10」。只对已经公开或本人可见的牌调用。
+export function describeHandMessage(cards) {
+  if (!cards || cards.length < 2) return { text: '' };
+  if (cards.length < 5) return cards.length === 2 && cards[0][0] === cards[1][0] ? msg('handDescription.1', { high: VALUE_LABEL(RANK_VALUE[cards[0][0]]) }) : { text: '' };
+  const rank = evaluate(cards).rank;
+  const params = rank[0] === 9 ? {} : { high: VALUE_LABEL(rank[1]), ...([2, 6].includes(rank[0]) ? { low: VALUE_LABEL(rank[2]) } : {}) };
+  return msg(`handDescription.${rank[0]}`, params);
+}
 export function describeHand(cards) {
-  if (!cards || cards.length < 2) return '';
-  if (cards.length < 5) return cards.length === 2 && cards[0][0] === cards[1][0] ? `一对 ${VALUE_LABEL(RANK_VALUE[cards[0][0]])}` : '';
-  const r = evaluate(cards).rank, v = i => VALUE_LABEL(r[i]);
-  return [`高牌 ${v(1)}`, `一对 ${v(1)}`, `两对 · ${v(1)} 和 ${v(2)}`, `三条 ${v(1)}`, `顺子 · 到 ${v(1)}`, `同花 · ${v(1)} 高`, `葫芦 · ${v(1)} 带 ${v(2)}`, `四条 ${v(1)}`, `同花顺 · 到 ${v(1)}`, '皇家同花顺'][r[0]];
+  return describeHandMessage(cards).text;
 }

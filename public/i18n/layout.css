@@ -1,0 +1,85 @@
+/* Keep the original Simplified Chinese typography; use full system fonts for other scripts. */
+:root:lang(zh-TW) {
+  --font-ui: 'NT Inter', 'PingFang TC', 'Microsoft JhengHei', 'Noto Sans CJK TC', system-ui, sans-serif;
+  --font-serif: 'Songti TC', 'Noto Serif CJK TC', 'PingFang TC', 'Microsoft JhengHei', serif;
+}
+:root:lang(ja) {
+  --font-ui: 'Hiragino Sans', 'Noto Sans CJK JP', 'Yu Gothic', 'Meiryo', system-ui, sans-serif;
+  --font-serif: 'Hiragino Mincho ProN', 'Yu Mincho', 'Noto Serif CJK JP', 'Hiragino Sans', serif;
+}
+:root:lang(ko) {
+  --font-ui: 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans CJK KR', system-ui, sans-serif;
+  --font-serif: 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Serif CJK KR', system-ui, sans-serif;
+}
+:root:lang(en), :root:lang(es) {
+  --font-serif: 'NT Inter', system-ui, sans-serif;
+}
+.language-picker { display: inline-flex; align-items: center; min-width: 0; flex: 0 0 auto; }
+.language-picker select {
+  width: 108px; min-width: 0; min-height: 34px; padding: 5px 20px 5px 8px; font: 12px var(--font-ui);
+  appearance: none; -webkit-appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: calc(100% - 12px) 50%, calc(100% - 8px) 50%;
+  background-size: 4px 4px; background-repeat: no-repeat;
+}
+.c-top .language-picker { margin-left: auto; }
+.menu .language-picker { display: flex; padding: 10px 0; }
+.menu .language-picker select { width: 100%; min-height: 44px; }
+.p-head .language-picker select { width: 90px; font-size: 11px; }
+.p-head .language-picker { margin-left: auto; }
+.p-head .language-picker + .iconbtn { margin-left: 0; }
+html:not(:lang(zh-CN)) .btn,
+html:not(:lang(zh-CN)) .pill,
+html:not(:lang(zh-CN)) .link-btn { white-space: normal; overflow-wrap: anywhere; height: auto; line-height: 1.4; }
+html:not(:lang(zh-CN)) :is(h1, h2, h3, p, .fine, .turn-sub, .strip, .note, .menu-row, .rule) { overflow-wrap: anywhere; }
+html:not(:lang(zh-CN)) :is(.btn, .street, .hero .tag, .turn-label, .waitblock strong, .callout .turn) { letter-spacing: .02em; }
+html:not(:lang(zh-CN)) .p-head { min-height: 70px; height: auto; gap: 8px; }
+html:not(:lang(zh-CN)) .p-head .t { min-width: 0; }
+html:not(:lang(zh-CN)) .p-head .t span { white-space: normal; overflow-wrap: anywhere; }
+html:not(:lang(zh-CN)) .phone-nav { gap: 5px; align-items: flex-start; font-size: 12px; }
+html:not(:lang(zh-CN)) .phone-nav > * { flex: 1; min-width: 0; text-align: center; overflow-wrap: anywhere; }
+html:not(:lang(zh-CN)) .phone-nav .link-btn { font-size: inherit; }
+html:not(:lang(zh-CN)) .acts { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+html:not(:lang(zh-CN)) .acts.two, html:not(:lang(zh-CN)) .acts.no-raise { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+html:not(:lang(zh-CN)) .acts.two.no-raise { grid-template-columns: minmax(0, 1fr); }
+html:not(:lang(zh-CN)) .acts .btn { min-width: 0; padding: 10px 6px; font-size: 14px; }
+html:not(:lang(zh-CN)) .sheet.is-raise .acts { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); }
+html:not(:lang(zh-CN)) .pair { flex-wrap: wrap; }
+html:not(:lang(zh-CN)) .p-board .top { white-space: normal; line-height: 1.35; }
+html:not(:lang(zh-CN)) .p-board .top > span { min-width: 0; }
+html:not(:lang(zh-CN)) .p-board .top > span:last-child { text-align: right; }
+html:not(:lang(zh-CN)) .hero .tag { display: inline-block; max-width: 100%; font-size: 13px; overflow-wrap: anywhere; }
+html:not(:lang(zh-CN)) .hero .made { min-width: 0; }
+html:not(:lang(zh-CN)) .me-sub { display: block; text-align: center; }
+html:not(:lang(zh-CN)) .run-vote-buttons { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+html:not(:lang(zh-CN)) .run-vote-buttons .btn { padding: 8px 5px; min-width: 0; }
+html:not(:lang(zh-CN)) .street { flex-wrap: wrap; justify-content: center; white-space: normal; gap: 6px; }
+html:not(:lang(zh-CN)) .topbar .mid { position: static; transform: none; margin: 0 auto; min-width: 0; flex-wrap: wrap; justify-content: center; }
+html:not(:lang(zh-CN)) .topbar .right { flex-shrink: 0; gap: 5px; }
+html:not(:lang(zh-CN)) .dock .btn { min-width: 0; padding: 10px; font-size: 13px; }
+html:not(:lang(zh-CN)) .topbar .room > span { max-width: 240px; }
+html:not(:lang(zh-CN)) .hostbar .ledger { flex-shrink: 0; max-width: 180px; }
+html:not(:lang(zh-CN)) .settlebar .ttl { min-width: 0; }
+html:not(:lang(zh-CN)) .presets button { height: auto; min-height: 44px; padding: 5px 3px; overflow-wrap: anywhere; }
+@media (max-width: 480px) {
+  .c-top { gap: 8px; flex-wrap: wrap; }
+  .c-top .ver { margin-left: 0; }
+  .p-head { gap: 8px; }
+  .p-head .t { min-width: 0; }
+  .p-head .t b { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+  html:not(:lang(zh-CN)) .turn-label { font-size: 19px; }
+  html:not(:lang(zh-CN)) .hero .me { flex-wrap: wrap; gap: 3px 8px; }
+  html:not(:lang(zh-CN)) .sheet { max-width: 100%; }
+  html:not(:lang(zh-CN)) .run-vote-status { overflow-wrap: anywhere; }
+}
+@media (max-width: 350px) {
+  html:not(:lang(zh-CN)) .p-head { padding-left: 12px; padding-right: 12px; }
+  html:not(:lang(zh-CN)) .p-head .seal { flex-shrink: 0; }
+  html:not(:lang(zh-CN)) .p-head .language-picker select { width: 88px; }
+  html:not(:lang(zh-CN)) .phone-nav { gap: 4px; font-size: 11px; }
+  html:not(:lang(zh-CN)) .acts .btn { font-size: 13px; }
+  html:not(:lang(zh-CN)) .hero.has-cards { gap: 12px; }
+}
+
+html:not(:lang(zh-CN)) .amt-field { min-width: 0; }
+html:not(:lang(zh-CN)) .amt-field input { width: 100%; min-width: 0; }

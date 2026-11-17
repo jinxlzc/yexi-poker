@@ -1,3 +1,4 @@
+import { t } from '../i18n/index.js';
 // 手机设备能力：屏幕常亮、震动、上次的房间。全部是渐进增强，不支持就安静地跳过。
 const AWAKE_KEY = 'night-table.awake';
 let lock = null, video = null, want = false, armed = false;
@@ -43,5 +44,4 @@ export function rememberRoom(code, page) { try { localStorage.setItem(LAST, JSON
 export function lastRoom() { try { const v = JSON.parse(localStorage.getItem(LAST) || 'null'); return v && Date.now() - v.at < 3 * 24 * 3600_000 ? v : null; } catch { return null; } }
 
 // 标题栏提示：轮到自己时在标签页标题前加一个点。
-const baseTitle = document.title;
-export function titleAlert(text) { document.title = text ? `● ${text} · 夜席` : baseTitle; }
+export function titleAlert(text) { document.title = text ? t('night.alertTitle', { text }) : t('app.title'); }

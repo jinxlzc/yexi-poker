@@ -1,0 +1,30 @@
+{
+  "name": "Yexi · Home poker",
+  "short_name": "Yexi",
+  "description": "Home poker on your local network, with physical or digital cards. Play chips only.",
+  "lang": "en",
+  "start_url": "/join",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#060807",
+  "theme_color": "#060807",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

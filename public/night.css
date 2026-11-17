@@ -323,3 +323,95 @@ select option { background: #111816; color: var(--text); }
 .hv-street h3 { white-space: nowrap; }
 .phone-app.summary-app { overflow-x: clip; }
 .hv-refund .hv-verb { white-space: normal; font-size: 12px; color: var(--text-3); text-align: right; }
+
+/* 全下跑牌、分池与桌规 */
+.settings-grid, .more-set .settings-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.settings-grid .rules-switch { grid-column: 1 / -1; flex-direction: row; gap: 12px; }
+.settings-grid .rules-switch input { min-height: 28px; }
+.settings-grid button[type="submit"] { justify-self: start; }
+.straddle-control { margin-top: 10px; }
+.straddle-control input:disabled { opacity: .45; cursor: not-allowed; }
+.mark-straddle { color: var(--gold-hi); }
+
+.run-choice { position: static; margin: 12px 16px 0; padding: 16px; border-radius: 24px; }
+.run-choice h1 { font: 700 20px var(--font-serif); color: var(--gold-hi); }
+.run-choice-rule { margin-top: 6px; color: var(--text-2); font-size: 13px; }
+.run-vote-buttons { display: flex; gap: 8px; margin: 12px 0; }
+.run-vote-buttons .btn { min-width: 0; flex: 1; min-height: 46px; padding: 5px 8px; font-size: 14px; }
+.run-vote-status { display: grid; gap: 4px; max-width: 100%; padding: 8px 12px; color: var(--text-2); font-size: 13px; overflow-wrap: anywhere; }
+.run-choice .run-vote-status { padding: 8px 0 0; }
+.run-vote-status b { margin-right: 4px; color: var(--gold-hi); }
+.is-choosing-run .hero-cards { width: 152px; height: 126px; }
+.is-choosing-run .hero .npcard.is-hero { --w: 84px; }
+.is-choosing-run .p-board { margin-bottom: 16px; }
+.run-vote-buttons .btn[aria-pressed="true"] { opacity: 1; }
+.run-host-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.run-host-actions .btn { min-height: 40px; padding: 4px 14px; font-size: 13px; }
+#modal .run-vote-buttons { flex-wrap: wrap; }
+#modal .run-vote-buttons .btn { flex-basis: 98px; }
+.run-count { color: var(--gold-hi); font-size: 13px; font-weight: 600; }
+
+.tablepage.is-review { grid-template-columns: minmax(0, 1fr); }
+.tablepage.has-panel.is-review { grid-template-columns: minmax(0, 1fr) minmax(305px, 420px); }
+.arena.is-review { container-type: normal; display: flex; flex-wrap: wrap; justify-content: center; align-content: flex-start; align-items: flex-start; gap: 14px; padding: 16px 24px 24px; overflow: auto; }
+.arena.is-review .rail, .arena.is-review .felt { display: none; }
+.arena.is-review .center { position: relative; inset: auto; transform: none; width: 100%; padding: 16px; gap: 10px; border-radius: 24px; background: radial-gradient(80% 90% at 50% 30%, var(--felt-hi), var(--felt) 55%, var(--felt-lo)); box-shadow: inset 0 0 0 1px rgba(227,196,138,.22); }
+.arena.is-review .callout .turn { font-size: clamp(17px, 2vw, 25px); }
+.arena.is-review .center > .board-slots { --slot-w: 46px; gap: 6px; }
+.arena.is-review .center > .board-slots .npcard { --w: 46px; }
+.arena.is-review .seat { position: relative; inset: auto; transform: none; width: min(132px, calc(50% - 7px)); margin-top: 28px; }
+.arena.is-review .seat.is-show { margin-top: 55px; }
+.arena.is-review .seat .delta { position: static; margin-top: 6px; }
+.arena.is-review .waiting-strip { position: static; transform: none; width: 100%; flex-wrap: wrap; justify-content: center; }
+
+.run-boards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); align-items: start; gap: 10px; width: min(100%, 1050px); }
+.run-board { display: grid; justify-items: center; gap: 8px; min-width: 0; padding: 12px; border-radius: 16px; background: rgba(0,0,0,.24); box-shadow: inset 0 0 0 1px var(--hair-2); overflow-wrap: anywhere; }
+.run-board h2 { font: 600 14px var(--font-serif); color: var(--gold-hi); }
+.run-board .board-slots { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; width: min(100%, 262px); }
+.run-board .board-slot { container-type: inline-size; }
+.run-board .npcard.is-mini { --w: 100cqw; }
+.run-board .slot-empty { --slot-w: 100cqw; }
+.run-hand-names, .run-awards { list-style: none; width: 100%; padding: 0; margin: 0; color: var(--text-2); font-size: 12px; }
+.run-hand-names { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px 12px; }
+.run-awards li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 12px; border-top: 1px solid var(--hair-2); padding: 5px 0; text-align: left; }
+.run-awards li:last-child { padding-bottom: 0; }
+.run-awards li span:last-child, .run-my-hand, .run-awards b { color: var(--gold-hi); }
+.run-my-hand { font-size: 12px; }
+.p-board.felt-surface.has-runs { height: auto; padding: 12px; }
+.p-board.has-runs .top { position: static; margin-bottom: 10px; flex-wrap: wrap; }
+.p-board.has-runs .run-boards { grid-template-columns: minmax(0, 1fr); }
+.p-board.has-runs .run-board .npcard.is-mini { --w: 100cqw; }
+.p-board.has-runs .run-board .board-slots { width: min(100%, 238px); }
+.settlebar .rows { min-width: 0; flex-wrap: wrap; gap: 3px 18px; white-space: normal; }
+.settle-panel { overflow: hidden; }
+.settle-fields { display: flex; flex-direction: column; gap: 12px; min-height: 0; overflow: auto; padding: 4px; margin: -4px; }
+.settle-panel .panel-actions { flex-shrink: 0; }
+.tablepage.is-review .potpick { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.tablepage.is-review .potpick button { padding: 9px 11px; }
+.tablepage.is-review .potpick .t { gap: 2px 8px; flex-wrap: wrap; font-size: 13px; }
+
+.hv-runouts, .rc-hl-runs { display: grid; gap: 10px; }
+.hv-runouts { grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); }
+.hv-run, .rc-hl-run { display: grid; gap: 6px; min-width: 0; padding: 10px; border-radius: 12px; box-shadow: inset 0 0 0 1px var(--hair); }
+.hv-run > h4, .rc-hl-run > h3 { margin: 0; font: 600 13px var(--font-serif); color: var(--gold-hi); }
+.hv-order, .hv-hand-names, .rc-hl-shares { color: var(--text-2); font-size: 12px; overflow-wrap: anywhere; }
+.hv-run .hv-final { flex-wrap: wrap; gap: 6px; margin: 0; }
+.hv-col { white-space: nowrap; }
+
+@media (max-width: 900px) {
+  .tablepage.has-panel.is-review { grid-template-columns: minmax(0, 1fr); }
+  .arena.is-review { padding: 12px 12px 24px; overflow: visible; }
+  .settings-grid, .more-set .settings-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hv-street header, .hv-result li { flex-wrap: wrap; }
+}
+@media (max-width: 420px) {
+  .settings-grid, .more-set .settings-grid { grid-template-columns: minmax(0, 1fr); }
+  .level-row { flex-wrap: wrap; }
+  .level-now { flex-basis: 100%; }
+  .settle-panel .winners { grid-template-columns: minmax(0, 1fr); }
+  .hv-run .hv-board .npcard.is-mini, .rc-hl-run .rc-board .npcard.is-mini { --w: min(11vw, 36px); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .seat-holes [data-show-order] .npcard-inner { animation: show-card 360ms var(--ease) var(--show-delay) both; }
+  @keyframes show-card { from { transform: rotateY(0deg); } to { transform: rotateY(180deg); } }
+}

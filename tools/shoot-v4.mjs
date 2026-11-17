@@ -32,6 +32,7 @@ await host.getByRole('radio', { name: '电子牌', exact: true }).check();
 await host.locator('.more-set summary').click();
 await host.getByLabel('自动涨盲').selectOption('8');
 await host.getByLabel('行动计时').selectOption('30');
+await host.locator('[name=runouts]').selectOption('1');
 await shot(host, 'desktop-create-more');
 await host.getByRole('button', { name: '创建房间', exact: true }).click();
 await host.waitForURL(/\/share/);

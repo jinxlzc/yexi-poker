@@ -16,7 +16,7 @@ test.afterAll(async () => { await server.close(); await rm(dir, { recursive: tru
 
 const signed = v => (v > 0 ? `+${v.toLocaleString('en-US')}` : v < 0 ? `−${(-v).toLocaleString('en-US')}` : '±0');
 async function phoneFor(name, browser, f) {
-  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, deviceScaleFactor: 1 });
+  const context = await browser.newContext({ locale: 'zh-CN', viewport: { width: 390, height: 844 }, isMobile: true, deviceScaleFactor: 1 });
   await context.addInitScript(() => localStorage.setItem('night-table.sound', 'off'));
   f.contexts.push(context);
   const phone = await context.newPage(); phone.on('pageerror', e => f.errors.push(e.message));

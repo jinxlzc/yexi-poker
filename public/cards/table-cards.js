@@ -1,3 +1,4 @@
+import { t } from '../i18n/index.js';
 // 夜席 v3 牌面：大角标排版 + 原创花色路径。牌是有正反两面的 3D 物体，翻面动画由 .is-flipped 控制。
 export const SUIT_PATH = {
   s: 'M50 5C41 21 9 37 9 60c0 13 10 21 21 21 7 0 13-3 17-9-1 9-5 15-13 20h32c-8-5-12-11-13-20 4 6 10 9 17 9 11 0 21-8 21-21C91 37 59 21 50 5Z',
@@ -7,7 +8,7 @@ export const SUIT_PATH = {
 };
 const RED = new Set(['h', 'd']);
 const RANK_LABEL = { T: '10' };
-const CREST = { J: '侍', Q: '后', K: '王' };
+const CREST = { J: 'night.crestJ', Q: 'night.crestQ', K: 'night.crestK' };
 export const rankLabel = rank => RANK_LABEL[rank] || rank;
 
 export const suitGlyph = (suit, className = '') =>
@@ -16,11 +17,11 @@ export const suitGlyph = (suit, className = '') =>
 export function cardFace(code) {
   const rank = code[0], suit = code[1];
   const kind = 'JQK'.includes(rank) ? 'is-face' : rank === 'A' ? 'is-ace' : '';
-  return `<div class="npcard-face npcard-front ${RED.has(suit) ? 'is-red' : 'is-black'} ${kind}">${kind === 'is-face' ? `<i class="frame"></i><i class="crest">${CREST[rank]}</i>` : ''}<span class="rank ${rank === 'T' ? 'is-ten' : ''}">${rankLabel(rank)}</span>${suitGlyph(suit, 'pip-s')}${suitGlyph(suit, 'pip-l')}<i class="foil"></i></div>`;
+  return `<div class="npcard-face npcard-front ${RED.has(suit) ? 'is-red' : 'is-black'} ${kind}">${kind === 'is-face' ? `<i class="frame"></i><i class="crest">${t(CREST[rank])}</i>` : ''}<span class="rank ${rank === 'T' ? 'is-ten' : ''}">${rankLabel(rank)}</span>${suitGlyph(suit, 'pip-s')}${suitGlyph(suit, 'pip-l')}<i class="foil"></i></div>`;
 }
 
 export function cardBack() {
-  return '<div class="npcard-face npcard-back"><i class="bk-frame"></i><i class="bk-seal">夜</i></div>';
+  return `<div class="npcard-face npcard-back"><i class="bk-frame"></i><i class="bk-seal">${t('night.seal')}</i></div>`;
 }
 
 export function playingCard(code, { size = '', flipped = false, extra = '', cls = '' } = {}) {
@@ -30,7 +31,7 @@ export function playingCard(code, { size = '', flipped = false, extra = '', cls 
 }
 
 export function boardSlots(board = [], { size = 'is-board', marks = {} } = {}) {
-  return `<div class="board-slots" aria-label="公共牌">${[0, 1, 2, 3, 4].map(i => {
+  return `<div class="board-slots" aria-label="${t('night.board')}">${[0, 1, 2, 3, 4].map(i => {
     const code = board[i];
     return `<div class="board-slot" data-slot="${i}">${code ? playingCard(code, { size, flipped: true, cls: marks[code] || '' }) : '<div class="slot-empty"></div>'}</div>`;
   }).join('')}</div>`;

@@ -1,22 +1,24 @@
+import { msg, joinMessages, describe, defaultText } from './messages.js';
 // 无上限规则：短加注仍须补跟或弃牌，但不足完整加注时不重开已行动者的加注权。
 // 多次短加注累计达到完整幅度时，按每位玩家上次行动后的增量判断（TDA 49）。
-import { takeDeck, winnersAmong, handName, evaluate, sameSelections } from './cards.js';
-export const STREETS = ['翻前', '翻牌圈', '转牌圈', '河牌圈'];
+import { takeDeck, winnersAmong, handNameMessage, evaluate, sameSelections } from './cards.js';
+export const streetMessage = street => msg(`street.${street}`);
+export const STREETS = [0, 1, 2, 3].map(street => streetMessage(street).text);
 export const LIMIT = 1_000_000_000;
 export class RuleError extends Error {
-  constructor(message, status = 400) { super(message); this.status = status; }
+  constructor(message, status = 400) { super(defaultText(message)); this.status = status; if (message?.key) { this.key = message.key; this.params = message.params || {}; } }
 }
 export function requireRule(condition, message, status) {
   if (!condition) throw new RuleError(message, status);
 }
 export function integer(value, min = 1, max = LIMIT) {
-  requireRule(Number.isSafeInteger(value) && value >= min && value <= max, `需要 ${min}–${max} 之间的整数。`);
+  requireRule(Number.isSafeInteger(value) && value >= min && value <= max, msg('error.integer', { min, max }));
   return value;
 }
 function name(value, max) {
-  requireRule(typeof value === 'string', '请填写名字。');
+  requireRule(typeof value === 'string', msg('error.nameRequired'));
   const result = value.trim();
-  requireRule([...result].length >= 1 && [...result].length <= max && !/[\p{Cc}\p{Cf}]/u.test(value), `名字需要 1–${max} 个字，不能含控制字符。`);
+  requireRule([...result].length >= 1 && [...result].length <= max && !/[\p{Cc}\p{Cf}]/u.test(value), msg('error.nameLength', { max }));
   return result;
 }
 export const CLOCKS = [0, 20, 30, 45, 60, 90];
@@ -24,17 +26,20 @@ export const LEVELS = [1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 20, 25, 30, 40, 50, 60, 
 const nowIso = () => new Date().toISOString();
 function validConfig(config, base = {}) {
   const c = { ...base, ...config };
-  const { smallBlind = 10, bigBlind = 20, startingStack = 2000, dealMode = 'physical', ante = 0, levelEvery = 0, actionClock = 0 } = c;
+  const { smallBlind = 10, bigBlind = 20, startingStack = 2000, dealMode = 'physical', ante = 0, levelEvery = 0, actionClock = 0, runouts = 3, straddle = false, anteMode = 'each' } = c;
   integer(smallBlind); integer(bigBlind, smallBlind); integer(startingStack, bigBlind);
   integer(ante, 0, bigBlind);
-  requireRule(Number.isSafeInteger(levelEvery) && (levelEvery === 0 || (levelEvery >= 3 && levelEvery <= 200)), '涨盲间隔需要 3–200 手，或关闭。');
-  requireRule(CLOCKS.includes(actionClock), '行动计时只能选关闭或 20/30/45/60/90 秒。');
-  requireRule(dealMode === 'physical' || dealMode === 'digital', '打牌方式无效。');
-  return { name: name(c.name ?? '今晚的牌局', 16), smallBlind, bigBlind, startingStack, rebuy: c.rebuy === true, dealMode, ante, levelEvery, actionClock };
+  requireRule(Number.isSafeInteger(levelEvery) && (levelEvery === 0 || (levelEvery >= 3 && levelEvery <= 200)), msg('error.levelEvery'));
+  requireRule(CLOCKS.includes(actionClock), msg('error.actionClock'));
+  requireRule(dealMode === 'physical' || dealMode === 'digital', msg('error.dealMode'));
+  requireRule([1, 2, 3].includes(runouts), msg('error.runouts'));
+  requireRule(typeof straddle === 'boolean', msg('error.straddleSetting'));
+  requireRule(['each', 'bigBlind'].includes(anteMode), msg('error.anteMode'));
+  return { name: name(c.name ?? msg('room.default').text, 16), smallBlind, bigBlind, startingStack, rebuy: c.rebuy === true, dealMode, ante, levelEvery, actionClock, runouts, straddle, anteMode };
 }
 export function newRoom(code, config = {}) {
   return { code, config: validConfig(config), version: 0, total: 0, players: [], hand: null, handNumber: 0, dealerSeat: 0, logs: [], balanceNote: '',
-    status: 'open', createdAt: nowIso(), startedAt: null, endedAt: null, level: 0, levelHand: 1, paused: null, roster: {}, records: [], statsFrom: 1, nextRoom: null };
+    status: 'open', createdAt: nowIso(), startedAt: null, endedAt: null, level: 0, levelHand: 1, paused: null, roster: {}, records: [], statsFrom: 1, nextRoom: null, nextStraddle: null };
 }
 // 旧房间（v1–v3）没有账本和结构化牌谱：账本从日志里的入座、补码、离开还原，统计从下一手开始。
 function legacyRoster(s) {
@@ -65,6 +70,10 @@ export function normalizeRoom(s) {
   if (!s.config) s.config = {};
   if (s.config.dealMode !== 'digital' && s.config.dealMode !== 'physical') s.config.dealMode = 'physical';
   for (const [k, v] of [['ante', 0], ['levelEvery', 0], ['actionClock', 0]]) if (!Number.isSafeInteger(s.config[k])) s.config[k] = v;
+  if (s.config.runouts === undefined) s.config.runouts = 3;
+  if (s.config.straddle === undefined) s.config.straddle = false;
+  if (s.config.anteMode === undefined) s.config.anteMode = 'each';
+  if (s.nextStraddle === undefined) s.nextStraddle = null;
   if (!s.status) s.status = 'open';
   if (!s.createdAt) s.createdAt = s.logs?.[0]?.at || nowIso();
   if (s.startedAt === undefined) s.startedAt = s.logs?.find(e => e.kind === 'start')?.at || null;
@@ -79,6 +88,14 @@ export function normalizeRoom(s) {
   for (const p of s.players) { if (p.sittingOut === undefined) p.sittingOut = false; }
   if (s.hand) {
     if (!Array.isArray(s.hand.board)) s.hand.board = [];
+    if (!Array.isArray(s.hand.boards)) s.hand.boards = [[...s.hand.board]];
+    if (!Number.isSafeInteger(s.hand.runs)) s.hand.runs = 1;
+    if (!s.hand.runVotes) s.hand.runVotes = {};
+    if (!Number.isSafeInteger(s.hand.sharedBoardCount)) s.hand.sharedBoardCount = 0;
+    if (!Array.isArray(s.hand.boardHandNames)) s.hand.boardHandNames = [{ ...(s.hand.handNames || {}) }];
+    if (!Array.isArray(s.hand.boardHandNamesMessage)) s.hand.boardHandNamesMessage = s.hand.boards.map(() => ({}));
+    if (!s.hand.handNamesMessage) s.hand.handNamesMessage = {};
+    if (!Array.isArray(s.hand.showOrder)) s.hand.showOrder = [];
     if (!s.hand.holes) s.hand.holes = {};
     if (!Array.isArray(s.hand.deck)) s.hand.deck = [];
     if (!Array.isArray(s.hand.burned)) s.hand.burned = [];
@@ -88,6 +105,15 @@ export function normalizeRoom(s) {
     if (!Number.isSafeInteger(s.hand.bigBlind)) s.hand.bigBlind = s.config.bigBlind;
     // 升级前已在进行的一手没有结构化动作，不进入牌谱统计。
     if (!Array.isArray(s.hand.actions)) { s.hand.actions = []; s.hand.untracked = true; }
+    if (s.hand.riverAggressor === undefined) {
+      s.hand.riverAggressor = null;
+      let high = 0;
+      for (const a of s.hand.actions) {
+        if (a.street !== 3 || !Number.isSafeInteger(a.to)) continue;
+        if (['raise', 'allin'].includes(a.a) && a.to > high) s.hand.riverAggressor = a.id;
+        high = Math.max(high, a.to);
+      }
+    }
     if (!s.hand.actedAt) {
       s.hand.actedAt = {};
       for (const a of s.hand.actions) if (a.street === s.hand.street && ['check', 'call', 'raise', 'allin'].includes(a.a)) s.hand.actedAt[a.id] = a.to || 0;
@@ -110,18 +136,29 @@ export const live = s => s.players.filter(p => p.inHand && !p.folded);
 const able = s => live(s).filter(p => p.stack > 0);
 export const potTotal = s => s.players.reduce((sum, p) => sum + p.contribution, 0);
 export function log(s, text, kind = 'action') {
-  s.logs.push({ id: `${s.version + 1}-${s.logs.length}`, at: new Date().toISOString(), hand: s.handNumber, text, kind });
+  s.logs.push({ id: `${s.version + 1}-${s.logs.length}`, at: new Date().toISOString(), hand: s.handNumber, ...describe(text), kind });
 }
 function clockwise(s, after, ids) {
   return ordered(s).filter(p => ids.includes(p.id)).sort((a, b) => ((a.seat - after + 9) % 10) - ((b.seat - after + 9) % 10));
 }
 function nextId(s, after, ids) { return clockwise(s, after, ids)[0]?.id ?? null; }
+// 座位页与开手使用同一套位置计算，预约抓不会因预告和实际轮转不同而落到别的位置。
+export function nextPositions(s) {
+  const participants = ordered(s).filter(p => p.stack > 0 && !p.sittingOut && !p.leaving);
+  if (participants.length < 2) return null;
+  const ids = participants.map(p => p.id);
+  const headsUpTransition = participants.length === 2 && s.hand?.participants.length > 2 && ids.includes(s.hand.big);
+  const dealer = headsUpTransition ? s.hand.big : nextId(s, s.dealerSeat, ids);
+  const small = participants.length === 2 ? dealer : nextId(s, player(s, dealer).seat, ids);
+  const big = nextId(s, player(s, small).seat, ids);
+  return { dealer, small, big, utg: participants.length >= 3 ? nextId(s, player(s, big).seat, ids) : null };
+}
 function invest(p, amount) { p.stack -= amount; p.bet += amount; p.contribution += amount; }
 function note(s, entry) { if (s.hand && Array.isArray(s.hand.actions)) s.hand.actions.push({ ...entry, street: s.hand.street, pot: potTotal(s) }); }
 function setActor(s, id) { const h = s.hand; if (h.actor !== id) h.actorSince = id ? nowIso() : null; h.actor = id; }
 
 function draw(h) {
-  requireRule(Array.isArray(h.deck) && h.deck.length > 0, '牌叠不够了。');
+  requireRule(Array.isArray(h.deck) && h.deck.length > 0, msg('error.deckEmpty'));
   return h.deck.shift();
 }
 function dealOrder(s) {
@@ -134,6 +171,7 @@ function dealHoles(s) {
   h.deck = takeDeck();
   h.burned = [];
   h.board = [];
+  h.boards = [[]];
   h.holes = {};
   h.revealed = {};
   h.handNames = {};
@@ -141,18 +179,19 @@ function dealHoles(s) {
   const order = dealOrder(s);
   for (let round = 0; round < 2; round++) for (const p of order) (h.holes[p.id] ??= []).push(draw(h));
   h.holeDealt = true;
-  log(s, '已发底牌', 'deal');
+  log(s, msg('log.deal'), 'deal');
 }
-function dealBoard(s, count) {
+function dealBoard(s, count, run = 0) {
   const h = s.hand;
   h.burned.push(draw(h));
-  for (let i = 0; i < count; i++) h.board.push(draw(h));
+  for (let i = 0; i < count; i++) h.boards[run].push(draw(h));
+  h.board = [...h.boards[0]];
 }
 export function autoWinners(s) {
   const holes = s.hand.holes || {};
-  const board = s.hand.board || [];
-  return Object.fromEntries(pots(s).map(pot => {
+  return Object.fromEntries(runPots(s).map(pot => {
     if (pot.eligible.length <= 1) return [pot.id, [...pot.eligible]];
+    const board = s.hand.boards?.[pot.run - 1] || s.hand.board || [];
     return [pot.id, winnersAmong(pot.eligible, holes, board)];
   }));
 }
@@ -160,7 +199,18 @@ function reveal(s, p) {
   const h = s.hand, holes = h.holes?.[p.id];
   if (!holes || holes.length !== 2) return;
   h.revealed[p.id] = [...holes];
-  if (h.board.length >= 3) h.handNames[p.id] = handName(evaluate([...holes, ...h.board]));
+  h.boards.forEach((board, i) => {
+    h.boardHandNames[i] ??= {};
+    h.boardHandNamesMessage ??= h.boards.map(() => ({}));
+    h.boardHandNamesMessage[i] ??= {};
+    if (board.length >= 3) {
+      const description = handNameMessage(evaluate([...holes, ...board]));
+      h.boardHandNames[i][p.id] = description.text;
+      h.boardHandNamesMessage[i][p.id] = description;
+    }
+  });
+  h.handNames = { ...h.boardHandNames[0] };
+  h.handNamesMessage = { ...h.boardHandNamesMessage[0] };
 }
 // 摊牌时只要有存活者全下，所有存活者亮牌；否则只亮赢家，其余默认盖牌，可以自己选择亮。
 // 牌型名只给已亮的人，日志不写盖牌者的牌力。
@@ -169,32 +219,53 @@ function digitalShowdown(s) {
   h.autoJudged = true;
   h.revealed = {};
   h.handNames = {};
+  h.boardHandNames = h.boards.map(() => ({}));
+  h.handNamesMessage = {};
+  h.boardHandNamesMessage = h.boards.map(() => ({}));
   h.mucked = [];
   h.selections = autoWinners(s);
   h.preview = previewSettlement(s, h.selections);
   if (survivors.length <= 1) {
-    if (survivors[0]) log(s, `摊牌 · 只剩 ${survivors[0].name}，不必亮牌`, 'showdown');
+    if (survivors[0]) log(s, msg('log.soleSurvivor', { name: survivors[0].name }), 'showdown');
     return;
   }
   const runout = survivors.some(p => p.stack === 0);
   const winners = new Set(Object.values(h.selections).flat());
-  const shown = survivors.filter(p => runout || winners.has(p.id));
+  const first = !runout && player(s, h.riverAggressor);
+  const order = clockwise(s, first && !first.folded ? (first.seat + 8) % 10 + 1 : h.dealerSeat, survivors.map(p => p.id));
+  h.showOrder = order.map(p => p.id);
+  const shown = order.filter(p => runout || winners.has(p.id));
   for (const p of shown) reveal(s, p);
   h.mucked = survivors.filter(p => !shown.includes(p)).map(p => p.id);
-  log(s, `摊牌 · ${shown.map(p => `${p.name} ${h.handNames[p.id]}`).join(' · ')}${h.mucked.length ? ` · ${h.mucked.length} 人盖牌` : ''}`, 'showdown');
+  log(s, msg('log.showOrder', { names: joinMessages(order.map(p => p.name), ' → ') }), 'showdown');
+  for (let i = 0; i < h.runs; i++) log(s, msg('log.showdown', { run: h.runs > 1 ? msg('fragment.run', { run: i + 1 }) : '', hands: joinMessages(shown.map(p => msg('log.playerHand', { name: p.name, hand: h.boardHandNamesMessage[i]?.[p.id] || h.boardHandNames[i]?.[p.id] || '' }))), mucked: h.mucked.length ? msg('fragment.mucked', { count: h.mucked.length }) : '' }), 'showdown');
 }
 function runOutDigital(s) {
   const h = s.hand;
-  while (h.street < 3) {
-    h.street += 1;
-    h.currentBet = 0;
-    h.lastFullRaise = h.bigBlind;
-    h.shortAllIn = false;
-    for (const p of s.players) p.bet = 0;
-    dealBoard(s, h.street === 1 ? 3 : 1);
-    note(s, { a: 'street', board: [...h.board] });
-    log(s, `进入${STREETS[h.street]}`, 'next');
+  const from = h.street, shared = [...h.board];
+  h.sharedBoardCount = shared.length;
+  h.boards = Array.from({ length: h.runs }, () => [...shared]);
+  h.currentBet = 0; h.lastFullRaise = h.bigBlind; h.shortAllIn = false;
+  for (const p of s.players) p.bet = 0;
+  for (let run = 0; run < h.runs; run++) {
+    h.street = from;
+    while (h.street < 3) {
+      h.street += 1;
+      dealBoard(s, h.street === 1 ? 3 : 1, run);
+      note(s, { a: 'street', run: run + 1, board: [...h.boards[run]] });
+      log(s, msg('log.streetCards', { run: h.runs > 1 ? msg('fragment.run', { run: run + 1 }) : '', street: streetMessage(h.street), cards: h.boards[run].join(' ') }), 'next');
+    }
   }
+}
+function resolveRuns(s, runs, by = '') {
+  const h = s.hand;
+  h.runs = runs; h.runResolved = true;
+  note(s, { a: 'runResult', runs, ...(by ? { by: defaultText(by), byMessage: describe(by) } : {}) });
+  log(s, msg('log.runResult', { runs, reason: by || msg('reason.minimumVote') }), 'runout');
+  if (isDigital(s)) runOutDigital(s);
+  else h.boards = Array.from({ length: runs }, () => []);
+  h.phase = 'showdown';
+  if (isDigital(s)) digitalShowdown(s);
 }
 export const LOG_WINDOW = 60;
 export function clipView(raw, identity = {}) {
@@ -217,26 +288,40 @@ export function clipView(raw, identity = {}) {
     const show = isDigital(s) && (s.hand.phase === 'showdown' || s.hand.phase === 'settled');
     const revealed = show ? s.hand.revealed || {} : {};
     s.hand.revealed = Object.fromEntries(Object.entries(revealed).map(([id, cards]) => [id, [...cards]]));
+    s.hand.handNamesMessage = Object.fromEntries(Object.entries(s.hand.handNamesMessage || {}).filter(([id]) => s.hand.revealed[id]));
+    s.hand.boardHandNamesMessage = s.hand.boardHandNamesMessage.map(names => Object.fromEntries(Object.entries(names).filter(([id]) => s.hand.revealed[id])));
     s.hand.handNames = Object.fromEntries(Object.entries(s.hand.handNames || {}).filter(([id]) => s.hand.revealed[id]));
+    s.hand.boardHandNames = s.hand.boardHandNames.map(names => Object.fromEntries(Object.entries(names).filter(([id]) => s.hand.revealed[id])));
   }
   return { state: s, hole };
 }
 
 export function assertConservation(s) {
-  requireRule(Number.isSafeInteger(s.total) && s.total >= 0, '全场积分无效。');
-  requireRule(new Set(s.players.map(p => p.seat)).size === s.players.length, '座位重复。');
-  requireRule(s.players.every(p => [p.stack, p.bet, p.contribution].every(n => Number.isSafeInteger(n) && n >= 0) && p.bet <= p.contribution), '筹码记录无效。');
-  requireRule(s.players.reduce((n, p) => n + p.stack, 0) + potTotal(s) === s.total, '分配后对不上全场积分，先不要确认。');
-  requireRule(pots(s).reduce((sum, p) => sum + p.amount, 0) === potTotal(s), '分池总额对不上。');
+  requireRule(Number.isSafeInteger(s.total) && s.total >= 0, msg('error.total'));
+  requireRule(new Set(s.players.map(p => p.seat)).size === s.players.length, msg('error.seatDuplicate'));
+  requireRule(s.players.every(p => [p.stack, p.bet, p.contribution].every(n => Number.isSafeInteger(n) && n >= 0) && p.bet <= p.contribution), msg('error.chipRecord'));
+  requireRule(s.players.reduce((n, p) => n + p.stack, 0) + potTotal(s) === s.total, msg('error.balance'));
+  requireRule(pots(s).reduce((sum, p) => sum + p.amount, 0) === potTotal(s), msg('error.potBalance'));
   return true;
 }
 // 以投入层级计算资格；弃牌筹码仍计入金额，同一资格的连续层合并。
+function potName(index) {
+  const nameMessage = msg(index === 0 ? 'pot.main' : index === 1 ? 'pot.side' : 'pot.sideNumber', index > 1 ? { number: index } : {});
+  return { name: nameMessage.text, nameMessage, nameKey: nameMessage.key, nameParams: nameMessage.params };
+}
+function setBalanceNote(s, value) {
+  s.balanceNote = defaultText(value);
+  s.balanceNoteMessage = describe(value);
+}
 export function pots(s) {
-  const levels = [...new Set(s.players.map(p => p.contribution).filter(Boolean))].sort((a, b) => a - b);
+  // 单人代付的前注属于全桌主池，不能变成代付者的边池投入。
+  const bba = ongoing(s) ? s.hand.bigBlindAnte || 0 : 0;
+  const contribution = p => p.contribution - (p.id === s.hand?.big ? bba : 0);
+  const levels = [...new Set(s.players.map(contribution).filter(Boolean))].sort((a, b) => a - b);
   const result = [];
   let previous = 0;
   for (const level of levels) {
-    const contributors = ordered(s).filter(p => p.contribution >= level);
+    const contributors = ordered(s).filter(p => contribution(p) >= level);
     const eligible = contributors.filter(p => p.inHand && !p.folded).map(p => p.id);
     const amount = (level - previous) * contributors.length;
     const last = result.at(-1);
@@ -247,7 +332,16 @@ export function pots(s) {
     } else result.push({ id: `pot-${result.length}`, amount, eligible, cap: level });
     previous = level;
   }
-  return result.map((p, i) => ({ ...p, name: i === 0 ? '主池' : i === 1 ? '边池' : `边池 ${i}`, forming: ongoing(s) && s.hand.phase !== 'showdown' }));
+  if (bba && result.length) result[0].amount += bba;
+  return result.map((p, i) => ({ ...p, ...potName(i), forming: ongoing(s) && s.hand.phase !== 'showdown' }));
+}
+// 分池和记录共用份额。单轮保留原有池编号，旧牌谱与客户端调用仍可读取。
+export function runPots(s) {
+  const all = pots(s), runs = s.hand?.runs || 1;
+  return Array.from({ length: runs }, (_, i) => all.map(pot => ({ ...pot,
+    id: runs === 1 ? pot.id : `run-${i + 1}:${pot.id}`, potId: pot.id, run: i + 1,
+    potAmount: pot.amount, amount: Math.floor(pot.amount / runs) + (i < pot.amount % runs ? 1 : 0), runOdd: i < pot.amount % runs
+  }))).flat();
 }
 // 一轮结束时退回没人匹配的本轮投入；前注不在 bet 中，不能退款。
 function refundUncalled(s) {
@@ -257,7 +351,7 @@ function refundUncalled(s) {
   if (excess > 0) {
     const p = sorted[0]; p.bet -= excess; p.contribution -= excess; p.stack += excess;
     note(s, { a: 'refund', id: p.id, amount: excess });
-    log(s, `${p.name} 未被跟注退回 ${excess}`, 'refund');
+    log(s, msg('log.refund', { name: p.name, amount: excess }), 'refund');
   }
 }
 function finishOrAdvance(s, after) {
@@ -271,10 +365,12 @@ function finishOrAdvance(s, after) {
   if (h.pending.length) { setActor(s, nextId(s, after, h.pending)); return; }
   refundUncalled(s);
   setActor(s, null);
-  if (isDigital(s) && live(s).length > 1 && h.street < 3 && able(s).length <= 1) {
-    runOutDigital(s);
-    h.phase = 'showdown';
-    digitalShowdown(s);
+  if (live(s).length > 1 && h.street < 3 && able(s).length <= 1 && live(s).some(p => p.stack === 0)) {
+    if (s.config.runouts === 1) resolveRuns(s, 1, msg('reason.runsDisabled'));
+    else {
+      h.phase = 'runChoice'; h.runMax = s.config.runouts; h.runVotes = {};
+      log(s, msg('log.runVoteStart', { max: h.runMax }), 'runout');
+    }
     return;
   }
   h.phase = live(s).length <= 1 || able(s).length <= 1 || h.street === 3 ? 'showdown' : 'roundEnd';
@@ -297,15 +393,15 @@ export function legalActions(s, id) {
     shortAllIn: canRaise && maxRaiseTo > h.currentBet && maxRaiseTo < minRaiseTo };
 }
 export function previewSettlement(s, selections) {
-  requireRule(s.hand?.phase === 'showdown', '还没到摊牌。');
-  requireRule(selections && typeof selections === 'object' && !Array.isArray(selections), '每个池都要指定赢家。');
-  const allPots = pots(s);
-  requireRule(Object.keys(selections).length === allPots.length, '每个池都要指定赢家。');
+  requireRule(s.hand?.phase === 'showdown', msg('error.showdown'));
+  requireRule(selections && typeof selections === 'object' && !Array.isArray(selections), msg('error.potWinners'));
+  const allPots = runPots(s);
+  requireRule(Object.keys(selections).length === allPots.length, msg('error.potWinners'));
   const awards = Object.fromEntries(s.players.map(p => [p.id, 0]));
   const details = allPots.map(pot => {
     const winners = selections[pot.id];
-    requireRule(Array.isArray(winners) && winners.length > 0 && new Set(winners).size === winners.length, '每个池都要指定不同的赢家。');
-    requireRule(winners.every(id => pot.eligible.includes(id)), '有人没有资格赢这个池。');
+    requireRule(Array.isArray(winners) && winners.length > 0 && new Set(winners).size === winners.length, msg('error.distinctWinners'));
+    requireRule(winners.every(id => pot.eligible.includes(id)), msg('error.ineligibleWinner'));
     // 每个池分别平分，奇数筹码从按钮左侧起，顺时针给最近的赢家（TDA 21）。
     const order = clockwise(s, s.hand.dealerSeat, winners).map(p => p.id);
     const each = Math.floor(pot.amount / winners.length), remainder = pot.amount % winners.length;
@@ -315,16 +411,16 @@ export function previewSettlement(s, selections) {
   });
   const distributed = Object.values(awards).reduce((a, b) => a + b, 0);
   const afterTotal = s.players.reduce((sum, p) => sum + p.stack + awards[p.id], 0);
-  requireRule(distributed === potTotal(s) && afterTotal === s.total, '分配后对不上全场积分，先不要确认。');
+  requireRule(distributed === potTotal(s) && afterTotal === s.total, msg('error.balance'));
   return { awards, details, distributed, afterTotal, balanced: true };
 }
-function between(s) { requireRule(!ongoing(s), '这一手结束再调。'); }
+function between(s) { requireRule(!ongoing(s), msg('error.betweenHands')); }
 function remove(s, p) {
-  requireRule(!!p, '座位不存在。');
-  s.total -= p.stack; s.balanceNote = `有人离开 −${p.stack}`;
+  requireRule(!!p, msg('error.seatMissing'));
+  s.total -= p.stack; setBalanceNote(s, msg('balance.leave', { amount: p.stack }));
   const r = s.roster[p.id];
   if (r) { r.cashOut += p.stack; r.seated = false; r.leftAt = nowIso(); r.seat = p.seat; }
-  log(s, `${p.name}离开，带走 ${p.stack}`, 'leave');
+  log(s, msg('log.leave', { name: p.name, amount: p.stack }), 'leave');
   s.players = s.players.filter(q => q.id !== p.id);
 }
 export function apply(s, type, args = {}, actorId = null) {
@@ -333,42 +429,43 @@ export function apply(s, type, args = {}, actorId = null) {
   assertConservation(state);
   return state;
 }
-function notPaused(s) { requireRule(!s.paused, '正在休息。主持人点「继续」之后再来。'); }
+function notPaused(s) { requireRule(!s.paused, msg('error.paused')); }
 function performAct(s, id, args, by = '') {
   const p = player(s, id), h = s.hand, legal = legalActions(s, id);
-  requireRule(!!legal, '还没轮到你，或本轮行动已结束。');
+  requireRule(!!legal, msg('error.turn'));
   const action = args.action;
-  requireRule(['fold', 'check', 'call', 'raise', 'allin'].includes(action), '未知行动。');
+  requireRule(['fold', 'check', 'call', 'raise', 'allin'].includes(action), msg('error.actionUnknown'));
   h.shortAllIn = false;
   let description, fullRaise = false, amount = 0;
-  if (action === 'fold') { p.folded = true; description = '弃牌'; }
-  if (action === 'check') { requireRule(legal.check, '当前不能过牌，需要跟注。'); description = '过牌'; }
+  if (action === 'fold') { p.folded = true; description = msg('action.fold'); }
+  if (action === 'check') { requireRule(legal.check, msg('error.cannotCheck')); description = msg('action.check'); }
   if (action === 'call') {
-    requireRule(legal.call > 0, '没有需要跟注的筹码。');
-    requireRule(p.stack > legal.call, '剩余筹码只能全下，请确认全下。');
-    amount = legal.call; invest(p, amount); description = `跟注 ${legal.call}`;
+    requireRule(legal.call > 0, msg('error.nothingToCall'));
+    requireRule(p.stack > legal.call, msg('error.confirmAllIn'));
+    amount = legal.call; invest(p, amount); description = msg('action.call', { amount: legal.call });
   }
   if (action === 'raise' || action === 'allin') {
-    if (action === 'allin') requireRule(legal.allIn, '当前只能跟注或弃牌，不能再加注。');
+    if (action === 'allin') requireRule(legal.allIn, msg('error.raiseClosed'));
     const target = action === 'allin' ? legal.maxRaiseTo : integer(args.to, 1, Number.MAX_SAFE_INTEGER);
-    requireRule(target <= legal.maxRaiseTo && target > p.bet, '不能投入超过自己的剩余筹码。');
-    if (action === 'raise') requireRule(legal.raise && target >= legal.minRaiseTo, `最小加注到 ${legal.minRaiseTo}。`);
+    requireRule(target <= legal.maxRaiseTo && target > p.bet, msg('error.stackLimit'));
+    if (action === 'raise') requireRule(legal.raise && target >= legal.minRaiseTo, msg('error.minRaise', { amount: legal.minRaiseTo }));
     const delta = target - h.currentBet;
     amount = target - p.bet;
     fullRaise = delta >= h.lastFullRaise;
     if (target > h.currentBet) {
+      if (h.street === 3) h.riverAggressor = p.id;
       h.shortAllIn = !fullRaise;
       if (fullRaise) h.lastFullRaise = delta;
       h.currentBet = target;
     }
     invest(p, amount);
-    description = p.stack === 0 ? `全下 ${amount}${h.shortAllIn ? ' · 短码' : ''}` : `${legal.call === 0 && h.currentBet === target && target === delta ? '下注' : '加注'}到 ${target} · 再投入 ${amount}`;
+    description = p.stack === 0 ? msg('action.allin', { amount, short: h.shortAllIn ? msg('fragment.short') : '' }) : msg(legal.call === 0 && h.currentBet === target && target === delta ? 'action.bet' : 'action.raise', { target, amount });
   }
   if (h.street === 0 && amount > 0 && Array.isArray(h.vpip) && !h.vpip.includes(p.id)) h.vpip.push(p.id);
   h.actedAt[p.id] = h.currentBet;
   h.pending = able(s).filter(q => q.id !== p.id && (h.pending.includes(q.id) || q.bet < h.currentBet)).map(q => q.id);
-  note(s, { a: action, id: p.id, amount, to: p.bet, allin: p.stack === 0 && action !== 'fold', ...(by ? { by } : {}) });
-  log(s, `${p.name} ${description}${by ? ` · 主持代（${by}）` : ''}`);
+  note(s, { a: action, id: p.id, amount, to: p.bet, allin: p.stack === 0 && action !== 'fold', ...(by ? { by: defaultText(by), byMessage: describe(by) } : {}) });
+  log(s, msg('log.action', { name: p.name, action: description, by: by ? msg('fragment.host', { reason: by }) : '' }));
   finishOrAdvance(s, p.seat);
 }
 function record(s, preview, contrib) {
@@ -377,98 +474,144 @@ function record(s, preview, contrib) {
   const awards = Object.fromEntries(Object.entries(preview.awards).filter(([, v]) => v > 0));
   s.records.push({
     n: h.number, at: h.startedAt || null, end: nowIso(), mode: s.config.dealMode,
-    blinds: { small: h.smallBlind ?? s.config.smallBlind, big: h.bigBlind, ante: h.ante || 0 },
-    dealer: h.dealer, small: h.small, big: h.big,
+    blinds: { small: h.smallBlind ?? s.config.smallBlind, big: h.bigBlind, ante: h.ante || 0, anteMode: h.anteMode || 'each' },
+    dealer: h.dealer, small: h.small, big: h.big, straddle: h.straddle || null,
     seats: Object.fromEntries(h.participants.map(id => { const p = player(s, id); return [id, { name: p.name, seat: p.seat, start: h.startStacks?.[id] ?? null }]; })),
-    actions: h.actions, board: [...h.board], shown: structuredClone(h.revealed || {}), hands: { ...(h.handNames || {}) },
+    actions: h.actions, board: [...h.board], boards: structuredClone(h.boards), runs: h.runs, sharedBoardCount: h.sharedBoardCount,
+    handsMessage: structuredClone(h.handNamesMessage || {}), boardHandsMessage: structuredClone(h.boardHandNamesMessage || []),
+    shown: structuredClone(h.revealed || {}), hands: { ...(h.handNames || {}) }, boardHands: structuredClone(h.boardHandNames), showOrder: [...h.showOrder],
     folded: h.participants.filter(id => player(s, id).folded), showdown: live(s).length > 1,
-    pots: preview.details.map(d => ({ name: d.name, amount: d.amount, winners: d.winners, shares: d.shares })),
+    pots: preview.details.map(({ eligible, cap, forming, ...d }) => d),
     awards, contrib, vpip: [...(h.vpip || [])]
   });
 }
 function mutate(s, type, args, actorId) {
-  requireRule(!isEnded(s), '牌局已经结束，只能查看。');
+  requireRule(!isEnded(s), msg('error.ended'));
   switch (type) {
     case 'join': {
-      requireRule(s.players.length < 10, '这张桌子已经坐满。');
+      requireRule(s.players.length < 10, msg('error.tableFull'));
       const nm = name(args.name, 8); integer(args.seat, 1, 10);
-      requireRule(!s.players.some(p => p.name === nm), '已经有人叫这个名字。换一个，大家才分得清。');
-      requireRule(!Object.values(s.roster).some(r => r.id !== args.id && r.name === nm), '今晚已经有人用过这个名字。如果就是你，请用「这是我，换了手机」认领。');
-      requireRule(!s.players.some(p => p.seat === args.seat), '这个座位已经有人。');
-      requireRule(typeof args.id === 'string' && !player(s, args.id), '玩家身份无效。');
+      requireRule(!s.players.some(p => p.name === nm), msg('error.nameTaken'));
+      requireRule(!Object.values(s.roster).some(r => r.id !== args.id && r.name === nm), msg('error.namePreviouslyUsed'));
+      requireRule(!s.players.some(p => p.seat === args.seat), msg('error.seatTaken'));
+      requireRule(typeof args.id === 'string' && !player(s, args.id), msg('error.playerIdentity'));
       const p = { id: args.id, name: nm, seat: args.seat, stack: s.config.startingStack, contribution: 0, bet: 0, folded: false, inHand: false, waiting: ongoing(s), leaving: false, sittingOut: false };
       const back = s.roster[args.id];
-      s.players.push(p); s.total += p.stack; s.balanceNote = `入座 +${p.stack}`;
+      s.players.push(p); s.total += p.stack; setBalanceNote(s, msg('balance.join', { amount: p.stack }));
       if (back) { back.buyIn += p.stack; back.seated = true; back.leftAt = null; back.seat = p.seat; back.name = nm; back.returns = (back.returns || 0) + 1; }
       else s.roster[p.id] = { id: p.id, name: nm, seat: p.seat, buyIn: p.stack, cashOut: 0, rebuys: 0, joinedAt: nowIso(), joinedHand: s.handNumber + 1, leftAt: null, seated: true };
-      log(s, `${nm}${back ? '回到桌上，' : ''}坐到 ${p.seat} 号位 · 起始 ${p.stack}${p.waiting ? ' · 下一手' : ''}`, 'join');
+      log(s, msg('log.join', { name: nm, returned: back ? msg('fragment.returned') : '', seat: p.seat, stack: p.stack, waiting: p.waiting ? msg('fragment.nextHand') : '' }), 'join');
       break;
     }
     case 'start': {
       between(s); notPaused(s);
       for (const p of [...s.players]) if (p.leaving) remove(s, p);
       const participants = ordered(s).filter(p => p.stack > 0 && !p.sittingOut);
-      requireRule(participants.length >= 2, s.players.some(p => p.sittingOut) ? '至少两位有筹码、没有暂离的玩家才能开始。' : '至少两位有筹码的玩家坐下后才能开始。');
+      requireRule(participants.length >= 2, s.players.some(p => p.sittingOut) ? msg('error.playersAvailable') : msg('error.playersRequired'));
       const ids = participants.map(p => p.id);
-      // 多人转单挑时，仍在桌上的原大盲改下小盲，避免连续两手交大盲。
-      const headsUpTransition = participants.length === 2 && s.hand?.participants.length > 2 && ids.includes(s.hand.big);
-      const dealer = player(s, headsUpTransition ? s.hand.big : nextId(s, s.dealerSeat, ids));
-      const small = participants.length === 2 ? dealer : player(s, nextId(s, dealer.seat, ids));
-      const big = player(s, nextId(s, small.seat, ids));
-      s.dealerSeat = dealer.seat; s.handNumber += 1; s.balanceNote = '';
+      const positions = nextPositions(s);
+      const dealer = player(s, positions.dealer), small = player(s, positions.small), big = player(s, positions.big);
+      const requestedStraddle = s.nextStraddle;
+      const straddler = s.config.straddle && requestedStraddle && positions.utg === requestedStraddle ? player(s, requestedStraddle) : null;
+      s.nextStraddle = null;
+      s.dealerSeat = dealer.seat; s.handNumber += 1; setBalanceNote(s, '');
       if (s.config.levelEvery > 0 && s.handNumber - s.levelHand >= s.config.levelEvery && s.level < LEVELS.length - 1) {
         s.level += 1; s.levelHand = s.handNumber;
         const up = levelBlinds(s);
-        log(s, `盲注升到 ${up.small}/${up.big}${up.ante ? ` · 前注 ${up.ante}` : ''}`, 'level');
+        log(s, msg('log.levelUp', { small: up.small, big: up.big, ante: up.ante ? msg('fragment.ante', { amount: up.ante }) : '' }), 'level');
       }
       const b = levelBlinds(s), at = nowIso();
       if (!s.startedAt) s.startedAt = at;
       for (const p of s.players) { p.inHand = ids.includes(p.id); p.folded = false; p.waiting = false; p.bet = 0; p.contribution = 0; }
       s.hand = { number: s.handNumber, dealer: dealer.id, dealerSeat: dealer.seat, small: small.id, big: big.id, street: 0, phase: 'betting', currentBet: b.big, lastFullRaise: b.big, smallBlind: b.small, bigBlind: b.big, ante: b.ante, actor: null, actorSince: null, pending: ids, shortAllIn: false, participants: ids, selections: null, preview: null, board: [], holes: {}, deck: [], burned: [], holeDealt: false, revealed: {}, handNames: {}, mucked: [], autoJudged: false,
-        startedAt: at, startStacks: Object.fromEntries(participants.map(p => [p.id, p.stack])), actions: [], vpip: [], actedAt: {} };
-      log(s, `开新一手 · 庄 ${dealer.name}`, 'start');
-      if (b.ante) {
+        startedAt: at, startStacks: Object.fromEntries(participants.map(p => [p.id, p.stack])), actions: [], vpip: [], actedAt: {},
+        runs: 1, runVotes: {}, runResolved: false, boards: [[]], sharedBoardCount: 0, boardHandNames: [{}], handNamesMessage: {}, boardHandNamesMessage: [{}], showOrder: [], riverAggressor: null,
+        straddle: straddler?.id || null, anteMode: s.config.anteMode, bigBlindAnte: 0 };
+      log(s, msg('log.start', { name: dealer.name }), 'start');
+      if (requestedStraddle && !straddler) log(s, msg('log.straddleIgnored'), 'blind');
+      if (b.ante && s.config.anteMode === 'each') {
         for (const p of participants) { const paid = Math.min(b.ante, p.stack); p.stack -= paid; p.contribution += paid; note(s, { a: 'ante', id: p.id, amount: paid, allin: p.stack === 0 }); }
-        log(s, `前注 · 每人 ${b.ante}${participants.some(p => p.stack === 0) ? ` · ${participants.filter(p => p.stack === 0).map(p => p.name).join('、')}前注全下` : ''}`, 'blind');
+        log(s, msg('log.anteEach', { amount: b.ante, allin: participants.some(p => p.stack === 0) ? msg('fragment.anteAllIn', { names: joinMessages(participants.filter(p => p.stack === 0).map(p => p.name), msg('separator.names')) }) : '' }), 'blind');
       }
-      for (const [p, amount, label, a] of [[small, b.small, '小盲', 'sb'], [big, b.big, '大盲', 'bb']]) {
+      for (const [p, amount, label, a] of [[small, b.small, msg('blind.sb'), 'sb'], [big, b.big, msg('blind.bb'), 'bb']]) {
         const paid = Math.min(amount, p.stack);
-        if (!paid) { log(s, `${p.name} 已全下，不再下${label}`, 'blind'); continue; }
+        if (!paid) { log(s, msg('log.blindSkipped', { name: p.name, blind: label }), 'blind'); continue; }
         invest(p, paid); note(s, { a, id: p.id, amount: paid, allin: p.stack === 0 });
-        log(s, `${p.name} ${label}${p.stack === 0 ? '全下' : ''} ${paid}`, 'blind');
+        log(s, msg('log.blind', { name: p.name, blind: label, allin: p.stack === 0 ? msg('fragment.allIn') : '', amount: paid }), 'blind');
+      }
+      if (b.ante && s.config.anteMode === 'bigBlind') {
+        const paid = Math.min(b.ante, big.stack);
+        big.stack -= paid; big.contribution += paid; s.hand.bigBlindAnte = paid;
+        note(s, { a: 'ante', id: big.id, amount: paid, allin: big.stack === 0, anteMode: 'bigBlind' });
+        log(s, msg('log.bigBlindAnte', { name: big.name, amount: paid, detail: paid < b.ante ? msg('fragment.anteShort', { amount: b.ante }) : msg('fragment.tableAnte') }), 'blind');
+      }
+      if (straddler) {
+        const paid = Math.min(2 * b.big, straddler.stack);
+        invest(straddler, paid); s.hand.currentBet = 2 * b.big; s.hand.lastFullRaise = 2 * b.big;
+        note(s, { a: 'straddle', id: straddler.id, amount: paid, allin: straddler.stack === 0 });
+        log(s, msg('log.straddle', { name: straddler.name, amount: paid, blind: 2 * b.big, short: paid < 2 * b.big ? msg('fragment.shortAllIn') : '' }), 'blind');
       }
       if (isDigital(s)) dealHoles(s);
-      finishOrAdvance(s, big.seat);
+      finishOrAdvance(s, straddler?.seat || big.seat);
+      break;
+    }
+    case 'runVote': {
+      notPaused(s);
+      const h = s.hand, id = actorId || args.playerId;
+      requireRule(h?.phase === 'runChoice', msg('error.runVotePhase'));
+      requireRule(live(s).some(p => p.id === id), msg('error.runVoteEligible'));
+      requireRule(!Object.hasOwn(h.runVotes, id), msg('error.runVoted'));
+      integer(args.runs, 1, h.runMax);
+      if (!actorId) requireRule(args.actorOffline === true, msg('error.playerOnline'));
+      const by = actorId ? '' : msg('reason.offline');
+      h.runVotes[id] = args.runs;
+      note(s, { a: 'runVote', id, runs: args.runs, ...(by ? { by: defaultText(by), byMessage: describe(by) } : {}) });
+      log(s, msg('log.runVote', { name: player(s, id).name, runs: args.runs, by: by ? msg('fragment.host', { reason: by }) : '' }), 'runout');
+      if (live(s).every(p => Object.hasOwn(h.runVotes, p.id))) resolveRuns(s, Math.min(...live(s).map(p => h.runVotes[p.id])));
+      break;
+    }
+    case 'runOnce': {
+      notPaused(s); requireRule(s.hand?.phase === 'runChoice', msg('error.runVotePhase'));
+      resolveRuns(s, 1, msg('reason.hostRunOnce')); break;
+    }
+    case 'straddle': {
+      between(s); const id = actorId || args.playerId;
+      requireRule(s.config.straddle, msg('error.straddleDisabled'));
+      requireRule(typeof args.enabled === 'boolean', msg('error.straddleSetting'));
+      requireRule(!!player(s, id), msg('error.seatMissing'));
+      requireRule(args.enabled ? nextPositions(s)?.utg === id : s.nextStraddle === id, msg('error.straddleEligible'));
+      s.nextStraddle = args.enabled ? id : null;
+      log(s, msg(args.enabled ? 'log.straddleReserve' : 'log.straddleCancel', { name: player(s, id).name, by: actorId ? '' : msg('fragment.hostSetting') }), 'settings');
       break;
     }
     case 'act': notPaused(s); performAct(s, actorId, args); break;
     case 'timeout': {
       notPaused(s);
-      const h = s.hand; requireRule(h?.phase === 'betting' && !!h.actor, '现在没有人在行动。');
+      const h = s.hand; requireRule(h?.phase === 'betting' && !!h.actor, msg('error.noActor'));
       const clock = s.config.actionClock || 0;
       const expired = clock > 0 && h.actorSince && Date.now() - Date.parse(h.actorSince) >= clock * 1000;
-      requireRule(expired || args.actorOffline === true, '还没超时，他也在线。再等等他。');
+      requireRule(expired || args.actorOffline === true, msg('error.actorNotExpired'));
       const legal = legalActions(s, h.actor);
-      performAct(s, h.actor, { action: legal?.check ? 'check' : 'fold' }, expired ? '超时' : '掉线');
+      performAct(s, h.actor, { action: legal?.check ? 'check' : 'fold' }, msg(expired ? 'reason.timeout' : 'reason.offline'));
       break;
     }
     case 'next': {
       notPaused(s);
-      requireRule(s.hand?.phase === 'roundEnd' && s.hand.street < 3, '还有人要行动，或没有下一轮。');
+      requireRule(s.hand?.phase === 'roundEnd' && s.hand.street < 3, msg('error.nextStreet'));
       const h = s.hand; h.street += 1; h.phase = 'betting'; h.currentBet = 0; h.lastFullRaise = h.bigBlind; h.shortAllIn = false;
       h.actedAt = {};
       for (const p of s.players) p.bet = 0;
       h.pending = able(s).map(p => p.id);
       if (isDigital(s)) dealBoard(s, h.street === 1 ? 3 : 1);
       note(s, { a: 'street', board: [...h.board] });
-      log(s, `进入${STREETS[h.street]}`, 'next');
+      log(s, msg('log.street', { street: streetMessage(h.street) }), 'next');
       finishOrAdvance(s, h.dealerSeat);
       break;
     }
     case 'preview': {
-      requireRule(s.hand?.phase === 'showdown', '还没到摊牌。');
+      requireRule(s.hand?.phase === 'showdown', msg('error.showdown'));
       if (isDigital(s) && s.hand.autoJudged) {
-        requireRule(args.selections === null || sameSelections(args.selections, s.hand.selections), '电子牌由系统按牌力判定，不能改判。');
+        requireRule(args.selections === null || sameSelections(args.selections, s.hand.selections), msg('error.digitalJudgment'));
         s.hand.preview = previewSettlement(s, s.hand.selections);
         break;
       }
@@ -477,122 +620,125 @@ function mutate(s, type, args, actorId) {
       break;
     }
     case 'settle': {
-      requireRule(s.hand?.phase === 'showdown', '还没到摊牌。');
+      requireRule(s.hand?.phase === 'showdown', msg('error.showdown'));
       let selections = args.selections;
       if (isDigital(s) && s.hand.autoJudged) {
         const judged = autoWinners(s);
-        requireRule(sameSelections(selections, judged), '电子牌由系统按牌力判定，不能改判。');
+        requireRule(sameSelections(selections, judged), msg('error.digitalJudgment'));
         selections = judged;
       }
       const preview = previewSettlement(s, selections);
-      requireRule(args.expectedTotal === preview.distributed, '分池预览已经变化，请重新核对。');
+      requireRule(args.expectedTotal === preview.distributed, msg('error.previewChanged'));
       const contrib = Object.fromEntries(s.players.filter(p => p.contribution > 0).map(p => [p.id, p.contribution]));
       for (const p of s.players) { p.stack += preview.awards[p.id]; p.contribution = 0; p.bet = 0; }
-      for (const detail of preview.details) log(s, `${detail.name} ${detail.amount} · ${detail.winners.map(id => `${player(s, id).name} +${detail.shares[id]}${detail.oddRecipients.includes(id) ? '（含余数 1）' : ''}`).join(' · ')}`, 'settle');
+      for (const detail of preview.details) log(s, msg('log.settle', { run: s.hand.runs > 1 ? msg('fragment.run', { run: detail.run }) : '', pot: detail.nameMessage || detail.name, amount: detail.amount, odd: detail.runOdd ? msg('fragment.runOdd') : '', winners: joinMessages(detail.winners.map(id => msg('log.award', { name: player(s, id).name, amount: detail.shares[id], odd: detail.oddRecipients.includes(id) ? msg('fragment.oddChip') : '' }))) }), 'settle');
       s.hand.phase = 'settled'; s.hand.actor = null; s.hand.actorSince = null; s.hand.pending = []; s.hand.preview = preview; s.hand.selections = selections;
       record(s, preview, contrib);
       break;
     }
     case 'show': {
-      requireRule(isDigital(s), '实体牌请直接把牌翻给大家看。');
+      requireRule(isDigital(s), msg('error.physicalShow'));
       const h = s.hand, p = player(s, actorId);
-      requireRule(!!p && !!h && (h.phase === 'showdown' || h.phase === 'settled'), '这一手结束后才能亮牌。');
-      requireRule(h.participants.includes(p.id) && h.holes?.[p.id]?.length === 2, '你没有参与这一手。');
-      requireRule(!h.revealed[p.id], '已经亮过了。');
+      requireRule(!!p && !!h && (h.phase === 'showdown' || h.phase === 'settled'), msg('error.showAfterHand'));
+      requireRule(h.participants.includes(p.id) && h.holes?.[p.id]?.length === 2, msg('error.notInHand'));
+      requireRule(!h.revealed[p.id], msg('error.alreadyShown'));
       reveal(s, p);
       h.mucked = (h.mucked || []).filter(id => id !== p.id);
-      log(s, `${p.name} 亮牌 ${h.revealed[p.id].join(' ')}${h.handNames[p.id] ? ` · ${h.handNames[p.id]}` : ''}`, 'show');
+      log(s, msg('log.show', { name: p.name, cards: h.revealed[p.id].join(' '), hand: h.handNames[p.id] ? msg('fragment.handSuffix', { hand: h.handNamesMessage[p.id] || h.handNames[p.id] }) : '' }), 'show');
       const rec = s.records.at(-1);
-      if (h.phase === 'settled' && rec?.n === h.number) { rec.shown[p.id] = [...h.revealed[p.id]]; if (h.handNames[p.id]) rec.hands[p.id] = h.handNames[p.id]; rec.actions.push({ a: 'show', id: p.id, street: h.street, pot: 0 }); }
+      if (h.phase === 'settled' && rec?.n === h.number) { rec.shown[p.id] = [...h.revealed[p.id]]; if (h.handNames[p.id]) rec.hands[p.id] = h.handNames[p.id]; rec.boardHands = structuredClone(h.boardHandNames); rec.handsMessage = structuredClone(h.handNamesMessage); rec.boardHandsMessage = structuredClone(h.boardHandNamesMessage); rec.actions.push({ a: 'show', id: p.id, street: h.street, pot: 0 }); }
       else note(s, { a: 'show', id: p.id });
       break;
     }
-    case 'rebuySetting': between(s); requireRule(typeof args.enabled === 'boolean', '补码开关无效。'); s.config.rebuy = args.enabled; log(s, `补码${args.enabled ? '打开' : '关闭'}`, 'settings'); break;
+    case 'rebuySetting': between(s); requireRule(typeof args.enabled === 'boolean', msg('error.rebuySetting')); s.config.rebuy = args.enabled; log(s, msg(args.enabled ? 'log.rebuyOn' : 'log.rebuyOff'), 'settings'); break;
     case 'rebuy': {
-      between(s); requireRule(s.config.rebuy, '补码关着。打开后，每次加筹码都会写入日志。');
-      const p = player(s, args.playerId); requireRule(!!p, '座位不存在。');
+      between(s); requireRule(s.config.rebuy, msg('error.rebuyClosed'));
+      const p = player(s, args.playerId); requireRule(!!p, msg('error.seatMissing'));
       integer(args.amount); integer(p.stack + args.amount);
-      p.stack += args.amount; s.total += args.amount; s.balanceNote = `含补码 +${args.amount}`;
+      p.stack += args.amount; s.total += args.amount; setBalanceNote(s, msg('balance.rebuy', { amount: args.amount }));
       const r = s.roster[p.id]; if (r) { r.buyIn += args.amount; r.rebuys += 1; }
-      log(s, `补码 · ${p.name} +${args.amount}`, 'rebuy'); break;
+      log(s, msg('log.rebuy', { name: p.name, amount: args.amount }), 'rebuy'); break;
     }
     case 'move': {
-      between(s); const p = player(s, args.playerId); requireRule(!!p, '座位不存在。');
-      requireRule(args.direction === 1 || args.direction === -1, '请选择顺时针或逆时针。');
+      between(s); const p = player(s, args.playerId); requireRule(!!p, msg('error.seatMissing'));
+      requireRule(args.direction === 1 || args.direction === -1, msg('error.direction'));
       const seat = (p.seat - 1 + args.direction + 10) % 10 + 1;
       const other = s.players.find(q => q.seat === seat);
       if (other) other.seat = p.seat;
       p.seat = seat;
-      log(s, `座位调整：${p.name}${args.direction === 1 ? '顺时针' : '逆时针'}一格`, 'move'); break;
+      log(s, msg(args.direction === 1 ? 'log.moveClockwise' : 'log.moveCounterclockwise', { name: p.name }), 'move'); break;
     }
     case 'seat': {
-      between(s); const p = player(s, args.playerId); requireRule(!!p, '座位不存在。'); integer(args.seat, 1, 10);
-      requireRule(args.seat !== p.seat, '已经在这个座位。');
+      between(s); const p = player(s, args.playerId); requireRule(!!p, msg('error.seatMissing')); integer(args.seat, 1, 10);
+      requireRule(args.seat !== p.seat, msg('error.sameSeat'));
       const other = s.players.find(q => q.seat === args.seat);
       if (other) other.seat = p.seat;
       p.seat = args.seat;
-      log(s, other ? `换座：${p.name} 和 ${other.name} 互换` : `换座：${p.name} 换到 ${args.seat} 号位`, 'move'); break;
+      log(s, other ? msg('log.swap', { name: p.name, other: other.name }) : msg('log.seat', { name: p.name, seat: args.seat }), 'move'); break;
     }
     case 'leave': {
-      const p = player(s, actorId || args.playerId); requireRule(!!p, '座位不存在。');
-      if (ongoing(s)) { requireRule(!!actorId, '这一手结束再调。'); p.leaving = true; log(s, `${p.name}将在这一手结束后离开`, 'leaveRequest'); }
+      const p = player(s, actorId || args.playerId); requireRule(!!p, msg('error.seatMissing'));
+      if (ongoing(s)) { requireRule(!!actorId, msg('error.betweenHands')); p.leaving = true; log(s, msg('log.leaveRequest', { name: p.name }), 'leaveRequest'); }
       else remove(s, p);
       break;
     }
     case 'sitOut': {
-      const p = player(s, actorId || args.playerId); requireRule(!!p, '座位不存在。');
-      requireRule(typeof args.away === 'boolean', '暂离开关无效。');
-      requireRule(p.sittingOut !== args.away, args.away ? '已经是暂离。' : '你已经在桌上。');
+      const p = player(s, actorId || args.playerId); requireRule(!!p, msg('error.seatMissing'));
+      requireRule(typeof args.away === 'boolean', msg('error.sitOutSetting'));
+      requireRule(p.sittingOut !== args.away, args.away ? msg('error.alreadyAway') : msg('error.alreadyPresent'));
       p.sittingOut = args.away;
       const mid = ongoing(s) && p.inHand && !p.folded;
-      log(s, args.away ? `${p.name} 暂离${mid ? ' · 这一手打完后' : ''}` : `${p.name} 回来了 · 下一手入局`, 'sitout');
+      log(s, args.away ? msg('log.sitOut', { name: p.name, after: mid ? msg('fragment.afterHand') : '' }) : msg('log.return', { name: p.name }), 'sitout');
       break;
     }
     case 'pause': {
-      requireRule(typeof args.on === 'boolean', '暂停开关无效。');
-      if (args.on) { requireRule(!s.paused, '已经在休息。'); s.paused = { at: nowIso() }; log(s, '休息一下', 'pause'); }
+      requireRule(typeof args.on === 'boolean', msg('error.pauseSetting'));
+      if (args.on) { requireRule(!s.paused, msg('error.alreadyPaused')); s.paused = { at: nowIso() }; log(s, msg('log.pause'), 'pause'); }
       else {
-        requireRule(!!s.paused, '没有在休息。');
+        requireRule(!!s.paused, msg('error.notPaused'));
         const away = Date.now() - Date.parse(s.paused.at);
         if (s.hand?.actorSince) s.hand.actorSince = new Date(Date.parse(s.hand.actorSince) + away).toISOString();
-        s.paused = null; log(s, '休息结束，继续', 'pause');
+        s.paused = null; log(s, msg('log.resume'), 'pause');
       }
       break;
     }
     case 'level': {
-      between(s); requireRule(args.delta === 1 || args.delta === -1, '只能升一级或降一级。');
-      const level = s.level + args.delta; requireRule(level >= 0 && level < LEVELS.length, args.delta > 0 ? '已经是最高一级。' : '已经是起始盲注。');
+      between(s); requireRule(args.delta === 1 || args.delta === -1, msg('error.levelStep'));
+      const level = s.level + args.delta; requireRule(level >= 0 && level < LEVELS.length, args.delta > 0 ? msg('error.levelMax') : msg('error.levelMin'));
       s.level = level; s.levelHand = s.handNumber + 1;
-      const b = levelBlinds(s); log(s, `主持把盲注调到 ${b.small}/${b.big}${b.ante ? ` · 前注 ${b.ante}` : ''} · 下一手起`, 'level'); break;
+      const b = levelBlinds(s); log(s, msg('log.levelSet', { small: b.small, big: b.big, ante: b.ante ? msg('fragment.ante', { amount: b.ante }) : '' }), 'level'); break;
     }
     case 'settings': {
       between(s);
       const patch = {};
-      for (const k of ['ante', 'levelEvery', 'actionClock']) if (args[k] !== undefined) patch[k] = args[k];
-      requireRule(Object.keys(patch).length > 0, '没有要改的设置。');
+      for (const k of ['ante', 'levelEvery', 'actionClock', 'runouts', 'straddle', 'anteMode']) if (args[k] !== undefined) patch[k] = args[k];
+      requireRule(Object.keys(patch).length > 0, msg('error.settingsEmpty'));
       const next = validConfig(patch, s.config);
       const text = [];
-      if (next.ante !== s.config.ante) text.push(next.ante ? `前注 ${next.ante}` : '关闭前注');
-      if (next.levelEvery !== s.config.levelEvery) { text.push(next.levelEvery ? `每 ${next.levelEvery} 手涨盲` : '关闭涨盲'); s.levelHand = s.handNumber + 1; }
-      if (next.actionClock !== s.config.actionClock) text.push(next.actionClock ? `行动计时 ${next.actionClock} 秒` : '关闭行动计时');
+      if (next.ante !== s.config.ante) text.push(next.ante ? msg('setting.ante', { amount: next.ante }) : msg('setting.anteOff'));
+      if (next.levelEvery !== s.config.levelEvery) { text.push(next.levelEvery ? msg('setting.levelEvery', { hands: next.levelEvery }) : msg('setting.levelOff')); s.levelHand = s.handNumber + 1; }
+      if (next.actionClock !== s.config.actionClock) text.push(next.actionClock ? msg('setting.clock', { seconds: next.actionClock }) : msg('setting.clockOff'));
+      if (next.runouts !== s.config.runouts) text.push(next.runouts === 1 ? msg('setting.runOff') : msg('setting.runMax', { runs: next.runouts }));
+      if (next.straddle !== s.config.straddle) text.push(msg(next.straddle ? 'setting.straddleOn' : 'setting.straddleOff'));
+      if (next.anteMode !== s.config.anteMode) text.push(msg(next.anteMode === 'bigBlind' ? 'setting.anteBigBlind' : 'setting.anteEach'));
       s.config = next;
-      if (text.length) log(s, `设置：${text.join(' · ')}`, 'settings');
+      if (text.length) log(s, msg('log.settings', { settings: joinMessages(text) }), 'settings');
       break;
     }
     case 'setDealMode': {
       between(s);
-      requireRule(args.dealMode === 'physical' || args.dealMode === 'digital', '打牌方式无效。');
+      requireRule(args.dealMode === 'physical' || args.dealMode === 'digital', msg('error.dealMode'));
       s.config.dealMode = args.dealMode;
-      log(s, `打牌方式改为${args.dealMode === 'digital' ? '电子牌' : '实体牌'}`, 'settings');
+      log(s, msg('log.dealMode', { mode: msg(args.dealMode === 'digital' ? 'setting.digital' : 'setting.physical') }), 'settings');
       break;
     }
     case 'end': {
       between(s);
       s.status = 'ended'; s.endedAt = nowIso(); s.paused = null;
       for (const p of s.players) { p.leaving = false; p.waiting = false; }
-      log(s, `牌局结束 · 共 ${s.handNumber} 手`, 'end');
+      log(s, msg('log.end', { hands: s.handNumber }), 'end');
       break;
     }
-    default: throw new RuleError('未知操作。');
+    default: throw new RuleError(msg('error.commandUnknown'));
   }
 }

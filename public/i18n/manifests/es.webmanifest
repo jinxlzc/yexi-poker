@@ -1,0 +1,30 @@
+{
+  "name": "Yexi · Póquer con amigos",
+  "short_name": "Yexi",
+  "description": "Póquer con amigos en tu red local. Cartas físicas o digitales, solo fichas de juego.",
+  "lang": "es",
+  "start_url": "/join",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#060807",
+  "theme_color": "#060807",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

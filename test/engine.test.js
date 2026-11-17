@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { apply, assertConservation, legalActions, newRoom, player, pots, potTotal, previewSettlement } from '../server/engine.js';
 
 function room(stacks = [1000, 1000, 1000], config = {}) {
-  let s = newRoom('TEST', config);
+  let s = newRoom('TEST', { runouts: 1, ...config });
   stacks.forEach((_, i) => { s = apply(s, 'join', { id: `p${i + 1}`, name: `玩家${i + 1}`, seat: i + 1 }); });
   stacks.forEach((stack, i) => { player(s, `p${i + 1}`).stack = stack; });
   s.total = stacks.reduce((a, b) => a + b, 0);

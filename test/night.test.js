@@ -94,7 +94,7 @@ test('seeded long nights: joins, leaves, rebuys, sit-outs, antes and level-ups k
   let seed = 7;
   const rand = n => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed % n; };
   for (let night = 0; night < 40; night++) {
-    let s = newRoom('TEST', { smallBlind: 5, bigBlind: 10, startingStack: 200 + rand(5) * 100, rebuy: true, ante: rand(3) === 0 ? 2 : 0, levelEvery: rand(2) ? 4 : 0, dealMode: rand(2) ? 'digital' : 'physical' });
+    let s = newRoom('TEST', { smallBlind: 5, bigBlind: 10, startingStack: 200 + rand(5) * 100, rebuy: true, ante: rand(3) === 0 ? 2 : 0, levelEvery: rand(2) ? 4 : 0, dealMode: rand(2) ? 'digital' : 'physical', runouts: 1 });
     let next = 1;
     for (let i = 0; i < 2 + rand(5); i++) { s = apply(s, 'join', { id: `n${next}`, name: `人${next}`, seat: next }); next++; }
     for (let hand = 0; hand < 25; hand++) {

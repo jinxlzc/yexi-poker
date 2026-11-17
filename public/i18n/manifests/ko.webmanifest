@@ -1,0 +1,30 @@
+{
+  "name": "야석 · 친구와 포커",
+  "short_name": "야석",
+  "description": "같은 네트워크에서 즐기는 포커. 실제 카드 또는 전자 카드, 놀이용 칩만 사용합니다.",
+  "lang": "ko",
+  "start_url": "/join",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#060807",
+  "theme_color": "#060807",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

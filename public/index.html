@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-Hans" translate="no">
+<html lang="zh-CN" translate="no">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -21,14 +21,15 @@
   <link rel="stylesheet" href="/cards/cards.css">
   <link rel="stylesheet" href="/chips/chips.css">
   <link rel="stylesheet" href="/night.css">
+  <link rel="stylesheet" href="/i18n/layout.css">
   <script type="module" src="/app.js"></script>
 </head>
 <body class="is-phone">
-  <div id="app"><main class="boot"><span class="seal">夜</span><p>正在接回牌桌。</p></main></div>
+  <div id="app"><main class="boot"><span class="seal">夜</span><p data-i18n="app.loading">正在接回牌桌。</p></main></div>
   <div id="fx" aria-hidden="true"></div>
   <div id="sound-dock"></div>
   <div id="toast" role="status" aria-live="polite" hidden></div>
   <dialog id="modal" aria-labelledby="dialog-title"></dialog>
-  <noscript>请启用 JavaScript，以同步牌桌和操作筹码。</noscript>
+  <noscript data-i18n="app.noscript">请启用 JavaScript，以同步牌桌和操作筹码。</noscript>
 </body>
 </html>

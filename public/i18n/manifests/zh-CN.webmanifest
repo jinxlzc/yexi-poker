@@ -1,0 +1,30 @@
+{
+  "name": "夜席 · 朋友局德州",
+  "short_name": "夜席",
+  "description": "局域网朋友局：实体牌或电子牌，只用娱乐积分。",
+  "lang": "zh-CN",
+  "start_url": "/join",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#060807",
+  "theme_color": "#060807",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

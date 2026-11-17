@@ -15,10 +15,9 @@
   ```bash
   git log --all -p | rg -n -i '(api[_-]?key|secret\s*[:=]|password\s*[:=]|ghp_|github_pat_|sk-[A-Za-z0-9]{20}|AKIA[0-9A-Z]{16}|BEGIN [A-Z ]*PRIVATE KEY|xox[bpa]-)'
   git log --all --name-only --format= | sort -u | rg -i '(^data/|\.sqlite|\.db$|\.env|\.pem$|\.key$)'
-  git log --all -p | rg -o '/Users/[A-Za-z]+|/home/[a-z]+|192\.168\.[0-9]+\.[0-9]+' | sort | uniq -c
   ```
 
-  示例地址 `192.168.1.23` 是文档占位，可以保留。
+  检查个人目录、工作目录的绝对路径和私有网段里的具体地址。文档和视觉稿用占位符表示局域网地址。
 - [ ] 提交作者邮箱是 GitHub noreply 或你愿意公开的地址：`git log --all --format='%an <%ae>' | sort -u`。
 - [ ] `.gitignore` 含 `data/`、`*.sqlite*`、`.env*`、`test-results/`。
 
